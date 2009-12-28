@@ -1,0 +1,19 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: TestFul Core
+Bundle-SymbolicName: testful.core
+Bundle-Version: 1.0.0
+Bundle-Activator: testful.core.Activator
+Require-Bundle: org.eclipse.core.runtime
+Bundle-ActivationPolicy: lazy
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Export-Package: testful,
+ testful.core,
+ testful.coverage,
+ testful.evolutionary.jMetal,
+ testful.model,
+ testful.model.xml,
+ testful.random,
+ testful.runner,
+ testful.utils
+Bundle-ClassPath: .

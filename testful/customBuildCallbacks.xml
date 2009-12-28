@@ -1,0 +1,272 @@
+<!-- ===================================================================== -->
+<!-- Custom targets called from a project's generated build.xml            -->
+<!-- Set customBuildCallbacks=<path/to/this/file> in your build.properties.-->
+<!-- ===================================================================== -->
+<project name="Build specific targets and properties" default="noDefault">
+
+	<!-- classes loaded using the TestfulClassLoader -->
+	<patternset id="testfulClassLoader">
+		<include name="testful/coverage/**/*.class" />
+		<exclude name="testful/coverage/TrackerDatum.class"/>
+		<exclude name="testful/coverage/**/*Instrumenter*.class"/>
+
+		<include name="testful/model/**/*.class"/>
+		<include name="jmetal/base/Variable.class"/>
+
+		<include name="testful/mutation/MutationExecution*.class"/>
+		<include name="testful/mutation/MutationCoverage*.class"/>
+		<include name="testful/mutation/TestStoppedException*.class"/>
+		<include name="testful/mutation/Utils*.class"/>
+
+		<include name="org/jmlspecs/**/*.class"/>
+		<include name="org/multijava/**/*.class"/>
+
+		<include name="org/apache/commons/jexl/**"/>
+		<include name="org/apache/commons/logging/**/*"/>
+
+		<include name="testful/utils/Cloner.class"/>
+	</patternset>
+
+	<!-- ===================================================================== -->
+	<!-- Default target                                                        -->
+	<!-- ===================================================================== -->
+	<target name="noDefault">
+		<echo message="This file must be called with explicit targets" />
+	</target>
+	
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target build.jars                              -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder to contain the build results           -->
+	<!-- ===================================================================== -->
+	<target name="pre.build.jars">
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target build.jars                               -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder to contain the build results           -->
+	<!-- ===================================================================== -->
+	<target name="post.build.jars">
+	</target>
+	
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target build.sources                           -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder to contain the build results           -->
+	<!-- ===================================================================== -->
+	<target name="pre.build.sources">
+	</target>
+		
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target build.sources                            -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder to contain the build results           -->
+	<!-- ===================================================================== -->
+	<target name="post.build.sources">
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the compilation target <name>                      -->
+	<!-- Substitute "name" with the name of the compilation target, eg @dot    -->
+	<!-- Available parameters :                                                -->
+	<!--   source.foldern : n = 1 ... N, the source folders                    -->
+	<!--   target.folder  : where the results of the compilation go            -->
+	<!--   <name>.classpath : name = name of the compilation target. A         -->
+	<!--                      reference to the classpath structure.            -->
+	<!-- ===================================================================== -->
+	<target name="pre.instrumenter.jar">
+	    <unjar dest="${target.folder}" overwrite="false">
+    	    <patternset>
+    	        <exclude name="META-INF/*.MF"/>
+    	    </patternset>
+    		<fileset file="lib/*.jar">
+    			<exclude name="*src*.jar"/>
+    		</fileset>
+	    </unjar>
+	</target>
+
+	<target name="pre.@dot">
+	    <unjar dest="${target.folder}" overwrite="false">
+    	    <patternset>
+    	        <exclude name="META-INF/*.MF"/>
+    	    </patternset>
+    		<fileset file="lib/*.jar">
+    			<exclude name="*src*.jar"/>
+    		</fileset>
+	    </unjar>
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do during the compilation target <name>, after the compile   -->
+	<!-- but before jaring.  Substitute "name" with the name of the compilation-->
+	<!-- target, eg @dot                                                       -->
+	<!-- Available parameters :                                                -->
+	<!--   source.foldern : n = 1 ... N, the source folders                    -->
+	<!--   target.folder  : where the results of the compilation go            -->
+	<!--   <name>.classpath : name = name of the compilation target. A         -->
+	<!--                      reference to the classpath structure.            -->
+	<!-- ===================================================================== -->
+	<target name="post.compile.instrumenter.jar">
+		<delete dir="${target.folder}" verbose="true" includeemptydirs="true">
+	    	<exclude name="testful/coverage/**/*.class"/>
+            <exclude name="testful/model/**/*.class"/>
+		    <exclude name="testful/utils/**/*.class"/>
+	        <exclude name="testful/runner/ClassFinder*.class"/>
+    	    <exclude name="testful/runner/TestfulClassLoader*.class"/>
+        	<exclude name="testful/TestFul.class"/>
+            <exclude name="testful/TestfulException.class"/>
+            <exclude name="testful/Configuration.class"/>
+
+			<exclude name="org/apache/commons/jexl/**/*.class"/>
+			<exclude name="org/apache/commons/logging/**/*.class"/>
+			<exclude name="org/jdom/**/*.class"/>
+			<exclude name="org/jmlspecs/jmlrac/runtime/**/*.class"/>
+	        <exclude name="org/kohsuke/args4j/**/*"/>
+
+			<exclude name="autogen.class"/>
+			<exclude name="procinfo.class"/>
+			<exclude name="typeinfo.class"/>
+			<exclude name="jas/**/*"/>
+			<exclude name="jasmin/**/*"/>
+			<exclude name="scm/**/*"/>
+			<exclude name="java_cup/**/*"/>
+			<exclude name="polyglot/**/*"/>
+			<exclude name="ppg/**/*"/>
+			<exclude name="beaver/**/*"/>
+			<exclude name="soot/**/*"/>
+		</delete>
+	</target>
+
+	<target name="post.compile.@dot">
+    	<copy todir="${target.folder}">
+    		<fileset dir="${target.folder}" >
+    			<patternset refid="testfulClassLoader"/>
+    		</fileset>
+			<mapper type="glob" from="*.class" to="*.clazz"/>
+		</copy>
+
+		<delete dir="${target.folder}" verbose="true" includeemptydirs="true">
+			<exclude name="testful/coverage/**/*.clazz"/>
+			<exclude name="testful/coverage/CoverageExecutionManager*.class"/>
+			<exclude name="testful/coverage/CoverageInformation*.class"/>
+			<exclude name="testful/coverage/**/*Coverage*.class"/>
+			<exclude name="testful/coverage/behavior/*.class"/>
+	        <exclude name="testful/coverage/bug/Bug.class"/>
+	        <exclude name="testful/coverage/whiteBox/*.class"/>
+	        <include name="testful/coverage/whiteBox/Factory*.class"/>
+	        <include name="testful/coverage/whiteBox/WhiteInstrumenter*.class"/>
+		    <exclude name="testful/model/**"/>
+
+	        <exclude name="testful/regression/*.class"/>
+		    <exclude name="testful/coverage/TrackerDatum*.class"/>
+		    <exclude name="testful/coverage/RunnerCaching*.class"/>
+		    <exclude name="testful/runner/**"/>
+		    <exclude name="testful/utils/**"/>
+		    <exclude name="testful/*.class"/>
+
+			<exclude name="ec/util/MersenneTwister*.class"/>
+			<exclude name="org/kohsuke/args4j/**/*"/>
+
+			<exclude name="jmetal/base/Variable.*"/>
+			<exclude name="ec/util/MersenneTwister*.class"/>
+			
+			<exclude name="org/jmlspecs/jmlexec/**/*.clazz"/>
+			<exclude name="org/jmlspecs/jmlrac/**/*.clazz"/>
+			<exclude name="org/jmlspecs/jmlrac/runtime/**/*.class"/>
+			<exclude name="org/jmlspecs/models/**/*.clazz"/>
+			<exclude name="org/jmlspecs/models/**/*.clazz"/>
+			<exclude name="org/jmlspecs/util/**/*.clazz"/>
+			
+			<exclude name="org/apache/commons/jexl/**/*"/>
+			<exclude name="org/apache/commons/logging/**/*"/>
+			<exclude name="org/jdom/**/*"/>
+
+			<exclude name="jmetal/base/**/*.class"/>
+			<exclude name="jmetal/util/**/*.class"/>
+			<exclude name="testful/evolutionary/jMetal/**/*.class"/>
+		</delete>
+	</target>
+	
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the compilation target <name>                       -->
+	<!-- Substitute "name" with the name of the compilation target, eg @dot    -->
+	<!-- Available parameters :                                                -->
+	<!--   jar.Location - the location of the compilation results              -->
+	<!--   <name>.classpath : name = name of the compilation target. A         -->
+	<!--                      reference to the classpath structure.            -->
+	<!-- ===================================================================== -->
+	<target name="post.name">
+	</target>
+
+	<target name="post.@dot">
+	</target>
+	
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target gather.bin.parts                         -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder containing the build results           -->
+	<!--   target.folder - destination folder                                  -->
+	<!-- ===================================================================== -->
+	<target name="pre.gather.bin.parts">
+	</target>
+		
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target gather.bin.parts                         -->
+	<!-- Available parameters :                                                -->
+	<!--   build.result.folder - folder containing the build results           -->
+	<!--   target.folder - destination folder                                  -->
+	<!-- ===================================================================== -->
+	<target name="post.gather.bin.parts">
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target gather.sources                          -->
+	<!-- Available parameters :                                                -->
+	<!--   destination.temp.folder - destination folder                        -->
+	<!-- ===================================================================== -->
+	<target name="pre.gather.sources">
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target gather.sources                           -->
+	<!-- Available parameters :                                                -->
+	<!--   destination.temp.folder - destination folder                        -->
+	<!-- ===================================================================== -->
+	<target name="post.gather.sources">
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target gather.logs                             -->
+	<!-- Available parameters :                                                -->
+	<!--   destination.temp.folder - destination folder                        -->
+	<!-- ===================================================================== -->
+	<target name="pre.gather.logs">        
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target gather.logs                              -->
+	<!-- Available parameters :                                                -->
+	<!--   destination.temp.folder - destination folder                        -->
+	<!-- ===================================================================== -->
+	<target name="post.gather.logs">       
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do before the target clean                                   -->
+	<!-- Available parameters :                                                -->
+	<!--   destination.temp.folder - destination folder                        -->
+	<!-- ===================================================================== -->
+	<target name="pre.clean">              
+	</target>
+
+	<!-- ===================================================================== -->
+	<!-- Steps to do after the target clean                                    -->
+	<!-- Available parameters :                                                -->
+	<!--   plugin.destination - final destination of the build                 -->
+	<!--   build.result.folder - results of the compilation                    -->
+	<!--   temp.folder - temporary folder                                      -->
+	<!-- ===================================================================== -->
+	<target name="post.clean">             
+	</target>
+</project>

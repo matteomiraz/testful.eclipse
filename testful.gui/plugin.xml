@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.popupMenus">
+      <objectContribution
+           adaptable="true"
+           id="testful.javaAction"
+           nameFilter="*.java"
+           objectClass="org.eclipse.core.resources.IFile">
+         <menu
+            id="testful.TestfulGroup" 
+            path="additions" 
+            icon="images/testful.gif"
+            label="Testful"> 
+            <separator name="group1"/> 
+         </menu>
+         <action
+               class="testful.gui.ActionStartWizard"
+               enablesFor="1"
+               icon="images/testful_wizard.gif"
+               id="testful.startTestful"
+               label="Start Testful wizard"
+               menubarPath="testful.TestfulGroup/group1"
+               tooltip="Start a new Testful tests session">
+         </action>
+         <action
+           id="testful.modifyXMLModel"
+           label="Modify Testful XML Model"
+           menubarPath="testful.TestfulGroup/group1"
+           enablesFor="1"
+           icon="images/testful_modify.gif"
+           class="testful.gui.ActionModifyXMLModel" >
+         </action> 
+         <action
+           id="testful.createXMLModel"
+           label="Create Testful XML Model"
+           menubarPath="testful.TestfulGroup/group1"
+           icon="images/testful_add.gif"
+           class="testful.gui.ActionCreateXMLModel" >
+         </action>
+      </objectContribution>
+     </extension>
+</plugin>

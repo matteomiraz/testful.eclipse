@@ -1,0 +1,11 @@
+syntax: glob
+
+*~
+./.metadata/
+*/bin/
+*/build/
+*/run/
+updateSite/*.jar
+updateSite/features/*.jar
+updateSite/plugins/*.jar
+
