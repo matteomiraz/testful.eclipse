@@ -20,6 +20,7 @@ to get the code and start contributing!
    </license>
 
    <url>
+      <update label="TestFul" url="http://testful.sourceforge.net/updateSite/"/>
       <discovery label="TestFul&apos;s homepage" url="http://code.google.com/p/testful/"/>
    </url>
 

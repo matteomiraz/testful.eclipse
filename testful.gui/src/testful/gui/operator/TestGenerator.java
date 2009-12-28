@@ -43,11 +43,10 @@ public class TestGenerator extends Job implements ITestfulOperator{
 
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
-		String logFile = config.getDirTest() + File.separator + config.getCut() + System.currentTimeMillis() + ".log";
+		String logFile = config.getDirGeneratedTests() + File.separator + config.getCut() + System.currentTimeMillis() + ".log";
 
 		try {
-			monitor.beginTask("Testful is generating test cases: ", time);
-			System.out.println("TOT TIME: " + time);
+			monitor.beginTask("generating test cases: ", time*1000);
 
 			Launcher.run(args, new IUpdate.Callback() {
 
@@ -61,13 +60,13 @@ public class TestGenerator extends Job implements ITestfulOperator{
 						monitor.beginTask("Testful is generating test cases: ", IProgressMonitor.UNKNOWN);
 						monitor.subTask("Saving...");
 					} else {
-						if(current >= lastUpdate + 1000) {
-							monitor.worked((int) (current-lastUpdate)/1000);
-							lastUpdate = current;
-						}
+						monitor.worked((int) (current-lastUpdate));
+						lastUpdate = current;
 
 						final int r = (int) (end - current) / 1000;
-						monitor.subTask((r / 60) + " minutes " + (r % 60) + " seconds remaining");
+						monitor.subTask(
+								((r / 60) > 0 ? (r / 60) + " minutes " : "" )
+								+ (r % 60) + " seconds remaining");
 					}
 				}
 
@@ -131,7 +130,7 @@ public class TestGenerator extends Job implements ITestfulOperator{
 
 		@Override
 		public void run() {
-			ShellTestfulResult tr = new ShellTestfulResult(new Display(), result);
+			ShellTestfulResult tr = new ShellTestfulResult(Display.getDefault(), result);
 			tr.run();
 		}
 	}

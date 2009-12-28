@@ -2,6 +2,8 @@ package testful.evolutionary.jMetal;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -24,6 +26,10 @@ import org.kohsuke.args4j.Option;
 import testful.IUpdate;
 import testful.TestfulException;
 import testful.model.Operation;
+import testful.model.OptimalTestCreator;
+import testful.model.Test;
+import testful.model.TestCoverage;
+import testful.model.TestSplitter;
 import testful.model.TestfulProblem;
 import testful.regression.JUnitTestGenerator;
 import testful.runner.IRunner;
@@ -135,7 +141,63 @@ public class Launcher {
 		}
 	}
 
-	public static void main(String[] args) throws TestfulException {
+	public static void main(String[] args) throws TestfulException, JMException, SecurityException, IOException, InterruptedException {
+		testful.TestFul.printHeader("Testful-nsgaII");
+		String baseDir = TestfulLogger.singleton.getBaseDir();
+
+		Launcher opt = new Launcher();
+		opt.parseArgs(args);
+
+		// Logger object and file to store log messages
+		logger_ = Configuration.logger_;
+		fileHandler_ = new FileHandler(baseDir + File.separator + "NSGAII_main.log");
+		logger_.addHandler(fileHandler_);
+
+		final TestfulProblem.TestfulConfig config;
+		if (opt.baseDir != null) config = new TestfulProblem.TestfulConfig(opt.baseDir);
+		else config = new TestfulProblem.TestfulConfig();
+
+		config.setCut(opt.cut);
+		config.cluster.setRepoSize(opt.auxSize);
+		config.cluster.setRepoCutSize(opt.cutSize);
+
+		config.fitness.len = !opt.disableLength;
+		config.fitness.bug = opt.enableBug;
+		config.fitness.bbd = !(opt.disableBasicBlock || opt.disableBasicBlockCode);
+		config.fitness.bbn = !(opt.disableBasicBlock || opt.disableBasicBlockContract);
+		config.fitness.brd = !(opt.disableBranch || opt.disableBranchCode);
+		config.fitness.brn = !(opt.disableBranch || opt.disableBranchContract);
+
+		JMProblem problem = JMProblem.getProblem(opt.getExecutor(), opt.enableCache, opt.reload, config);
+
+		NSGAII<Operation> algorithm = new NSGAII<Operation>(problem);
+		algorithm.setPopulationSize(opt.popSize);
+		algorithm.setMaxEvaluations(opt.time * 1000);
+		algorithm.setInherit(!opt.disableFitnessInheritance);
+		algorithm.setInheritUniform(opt.fitnessInheritanceUniform);
+
+		// Mutation and Crossover for Real codification
+		OnePointCrossoverVarLen<Operation> crossover = new OnePointCrossoverVarLen<Operation>();
+		crossover.setProbability(0.50);
+		crossover.setMaxLen(opt.maxSize);
+
+		algorithm.setCrossover(crossover);
+
+		TestfulMutation mutation = new TestfulMutation();
+		mutation.setProbSimplify(0.05f);
+		mutation.setProbability(0.01);
+		mutation.setProbRemove(0.75f);
+		algorithm.setMutation(mutation);
+
+		/* Selection Operator */
+		Selection<Operation,Solution<Operation>> selection = new BinaryTournament2<Operation>();
+		algorithm.setSelection(selection);
+
+		if(opt.localSearchPeriod > 0) {
+			LocalSearch<Operation> localSearch = new LocalSearchBranch(problem.getProblem());
+			algorithm.setImprovement(localSearch);
+			algorithm.setLocalSearchPeriod(opt.localSearchPeriod);
+		}
 
 		run(args, new IUpdate.Callback() {
 
@@ -161,7 +223,7 @@ public class Launcher {
 		System.exit(0);
 	}//main
 
-	public static void run(String[] args, IUpdate.Callback ... update) throws TestfulException {
+	public static void run(String[] args, IUpdate.Callback ... update) throws TestfulException, InterruptedException {
 		try {
 			testful.TestFul.printHeader("Testful-nsgaII");
 			String baseDir = TestfulLogger.singleton.getBaseDir();
@@ -227,13 +289,29 @@ public class Launcher {
 			/* Execute the Algorithm */
 			SolutionSet<Operation> population = algorithm.execute();
 
+
 			/* convert tests to jUnit */
+
+			/* split tests into smaller parts */
+			Collection<Test> parts = new ArrayList<Test>();
+			for(Solution<Operation> t : population)
+				parts.addAll(TestSplitter.split(true, problem.getTest(t)));
+
+			/* evaluate small tests */
+			Collection<TestCoverage> testCoverage = problem.evaluate(parts);
+
+			/* select best small tests */
+			OptimalTestCreator optimal = new OptimalTestCreator();
+			for (TestCoverage tc : testCoverage)
+				optimal.update(tc);
+
+			/* write them to disk as JUnit */
 			int i = 0;
 			JUnitTestGenerator gen = new JUnitTestGenerator(config);
-			for(Solution<Operation> t : population)
-				gen.read(File.separator + "TestFul" + i++, problem.getTest(t));
+			for(Test t : optimal.get())
+				gen.read(File.separator + "TestFul" + i++, t);
 
-			gen.writeSuite();
+			gen.writeSuite(getPackageName(config.getCut()), "AllTests");
 		} catch (JMException e) {
 			throw new TestfulException(e);
 		} catch (SecurityException e) {
@@ -241,5 +319,18 @@ public class Launcher {
 		} catch (IOException e) {
 			throw new TestfulException(e);
 		}
+
+		System.exit(0);
+	}//main
+
+	private static String getPackageName(String className) {
+		StringBuilder pkgBuilder =  new StringBuilder();
+		String[] parts = className.split("\\.");
+
+		for(int i = 0; i < parts.length; i++) {
+			if(i > 0) pkgBuilder.append('.');
+			pkgBuilder.append(parts[i]);
+		}
+		return pkgBuilder.toString();
 	}
 } // NSGAII_main
