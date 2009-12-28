@@ -53,7 +53,7 @@ public class Launcher {
 	@Option(required = false, name = "-time", usage = "The maximum execution time (in seconds)")
 	private int time = 600;
 
-	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)") 
+	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)")
 	private int localSearchPeriod = 20;
 
 	@Option(required = false, name = "-disableLength", usage = "Removes the length of test from the multi-objective fitness")
@@ -104,7 +104,7 @@ public class Launcher {
 	private IRunner executor = null;
 
 	public IRunner getExecutor() {
-		if(executor == null) 
+		if(executor == null)
 			synchronized(this) {
 				if(executor == null) {
 					executor = RunnerPool.createExecutor("testful", noLocal);
@@ -135,67 +135,10 @@ public class Launcher {
 		}
 	}
 
-	public static void main(String[] args) throws TestfulException, JMException, SecurityException, IOException {
-		testful.TestFul.printHeader("Testful-nsgaII");
-		String baseDir = TestfulLogger.singleton.getBaseDir();
+	public static void main(String[] args) throws TestfulException {
 
-		Launcher opt = new Launcher();
-		opt.parseArgs(args);
+		run(args, new IUpdate.Callback() {
 
-		// Logger object and file to store log messages
-		logger_ = Configuration.logger_;
-		fileHandler_ = new FileHandler(baseDir + File.separator + "NSGAII_main.log");
-		logger_.addHandler(fileHandler_);
-		
-		final TestfulProblem.TestfulConfig config;
-		if (opt.baseDir != null) config = new TestfulProblem.TestfulConfig(opt.baseDir);
-		else config = new TestfulProblem.TestfulConfig();
-		
-		config.setCut(opt.cut);
-		config.cluster.setRepoSize(opt.auxSize);
-		config.cluster.setRepoCutSize(opt.cutSize);
-		
-		config.fitness.len = !opt.disableLength;
-		config.fitness.bug = opt.enableBug;
-		config.fitness.bbd = !(opt.disableBasicBlock || opt.disableBasicBlockCode);
-		config.fitness.bbn = !(opt.disableBasicBlock || opt.disableBasicBlockContract);
-		config.fitness.brd = !(opt.disableBranch || opt.disableBranchCode);
-		config.fitness.brn = !(opt.disableBranch || opt.disableBranchContract);
-
-		// IExecutor executor, String cut, String aux, int indSize, int repoSize, int repoCutSize, boolean reloadClasses, boolean fitness_len, boolean fitness_beh, boolean fitness_bug, boolean fitness_brd, boolean fitness_brn, boolean fitness_dud, boolean fitness_dun) throws JMException {
-		JMProblem problem = JMProblem.getProblem(opt.getExecutor(), opt.enableCache, opt.reload, config);
-
-		NSGAII<Operation> algorithm = new NSGAII<Operation>(problem);
-		algorithm.setPopulationSize(opt.popSize);
-		algorithm.setMaxEvaluations(opt.time * 1000);
-		algorithm.setInherit(!opt.disableFitnessInheritance);
-		algorithm.setInheritUniform(opt.fitnessInheritanceUniform);
-		
-		// Mutation and Crossover for Real codification
-		OnePointCrossoverVarLen<Operation> crossover = new OnePointCrossoverVarLen<Operation>();
-		crossover.setProbability(0.50);
-		crossover.setMaxLen(opt.maxSize);
-		
-		algorithm.setCrossover(crossover);
-
-		TestfulMutation mutation = new TestfulMutation();
-		mutation.setProbSimplify(0.05f);
-		mutation.setProbability(0.01);
-		mutation.setProbRemove(0.75f);
-		algorithm.setMutation(mutation);
-
-		/* Selection Operator */
-		Selection<Operation,Solution<Operation>> selection = new BinaryTournament2<Operation>();
-		algorithm.setSelection(selection);
-		
-		if(opt.localSearchPeriod > 0) {
-			LocalSearch<Operation> localSearch = new LocalSearchBranch(problem.getProblem());
-			algorithm.setImprovement(localSearch);
-			algorithm.setLocalSearchPeriod(opt.localSearchPeriod);
-		}
-
-		algorithm.register(new IUpdate.Callback() {
-			
 			@Override
 			public void update(long start, long current, long end, Map<String, Float> coverage) {
 
@@ -214,24 +157,89 @@ public class Launcher {
 				System.out.println(sb.toString());
 			}
 		});
-		
-		/* Execute the Algorithm */
-		long initTime = System.currentTimeMillis();
-		SolutionSet<Operation> population = algorithm.execute();
-		long estimatedTime = System.currentTimeMillis() - initTime;
-		
-		System.out.println("Total execution time: " + estimatedTime);
-		System.out.println("Population size: " + population.size());
-		
 
-		/* convert tests to jUnit */
-		int i = 0;
-		JUnitTestGenerator gen = new JUnitTestGenerator(config);
-		for(Solution<Operation> t : population)
-			gen.read(File.separator + "TestFul" + i++, problem.getTest(t));
-
-		gen.writeSuite();
-		
 		System.exit(0);
 	}//main
+
+	public static void run(String[] args, IUpdate.Callback ... update) throws TestfulException {
+		try {
+			testful.TestFul.printHeader("Testful-nsgaII");
+			String baseDir = TestfulLogger.singleton.getBaseDir();
+
+			Launcher opt = new Launcher();
+			opt.parseArgs(args);
+
+			// Logger object and file to store log messages
+			logger_ = Configuration.logger_;
+			fileHandler_ = new FileHandler(baseDir + File.separator + "NSGAII_main.log");
+			logger_.addHandler(fileHandler_);
+
+			final TestfulProblem.TestfulConfig config;
+			if (opt.baseDir != null) config = new TestfulProblem.TestfulConfig(opt.baseDir);
+			else config = new TestfulProblem.TestfulConfig();
+
+			config.setCut(opt.cut);
+			config.cluster.setRepoSize(opt.auxSize);
+			config.cluster.setRepoCutSize(opt.cutSize);
+
+			config.fitness.len = !opt.disableLength;
+			config.fitness.bug = opt.enableBug;
+			config.fitness.bbd = !(opt.disableBasicBlock || opt.disableBasicBlockCode);
+			config.fitness.bbn = !(opt.disableBasicBlock || opt.disableBasicBlockContract);
+			config.fitness.brd = !(opt.disableBranch || opt.disableBranchCode);
+			config.fitness.brn = !(opt.disableBranch || opt.disableBranchContract);
+
+			// IExecutor executor, String cut, String aux, int indSize, int repoSize, int repoCutSize, boolean reloadClasses, boolean fitness_len, boolean fitness_beh, boolean fitness_bug, boolean fitness_brd, boolean fitness_brn, boolean fitness_dud, boolean fitness_dun) throws JMException {
+			JMProblem problem = JMProblem.getProblem(opt.getExecutor(), opt.enableCache, opt.reload, config);
+
+			NSGAII<Operation> algorithm = new NSGAII<Operation>(problem);
+			algorithm.setPopulationSize(opt.popSize);
+			algorithm.setMaxEvaluations(opt.time * 1000);
+			algorithm.setInherit(!opt.disableFitnessInheritance);
+			algorithm.setInheritUniform(opt.fitnessInheritanceUniform);
+
+			// Mutation and Crossover for Real codification
+			OnePointCrossoverVarLen<Operation> crossover = new OnePointCrossoverVarLen<Operation>();
+			crossover.setProbability(0.50);
+			crossover.setMaxLen(opt.maxSize);
+
+			algorithm.setCrossover(crossover);
+
+			TestfulMutation mutation = new TestfulMutation();
+			mutation.setProbSimplify(0.05f);
+			mutation.setProbability(0.01);
+			mutation.setProbRemove(0.75f);
+			algorithm.setMutation(mutation);
+
+			/* Selection Operator */
+			Selection<Operation,Solution<Operation>> selection = new BinaryTournament2<Operation>();
+			algorithm.setSelection(selection);
+
+			if(opt.localSearchPeriod > 0) {
+				LocalSearch<Operation> localSearch = new LocalSearchBranch(problem.getProblem());
+				algorithm.setImprovement(localSearch);
+				algorithm.setLocalSearchPeriod(opt.localSearchPeriod);
+			}
+
+			for (IUpdate.Callback u : update)
+				algorithm.register(u);
+
+			/* Execute the Algorithm */
+			SolutionSet<Operation> population = algorithm.execute();
+
+			/* convert tests to jUnit */
+			int i = 0;
+			JUnitTestGenerator gen = new JUnitTestGenerator(config);
+			for(Solution<Operation> t : population)
+				gen.read(File.separator + "TestFul" + i++, problem.getTest(t));
+
+			gen.writeSuite();
+		} catch (JMException e) {
+			throw new TestfulException(e);
+		} catch (SecurityException e) {
+			throw new TestfulException(e);
+		} catch (IOException e) {
+			throw new TestfulException(e);
+		}
+	}
 } // NSGAII_main

@@ -48,4 +48,9 @@ public class Configuration {
 	public String getDirInstrumented() {
 		return dirBase + File.separator + "instrumented";
 	}
+	
+	/** test directory */
+	public String getDirTest() {
+		return dirBase + File.separator + "test";
+	}
 }

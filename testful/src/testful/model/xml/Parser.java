@@ -25,7 +25,7 @@ public class Parser {
 
 	/** Should I create the behavior element? */
 	private static final boolean ADD_EMPTY_ELEMENTS = false;
-	
+
 	private static final Class<?>[] CLASSES = { XmlClass.class };
 
 	public static final Parser singleton;
@@ -56,16 +56,17 @@ public class Parser {
 
 	public XmlClass parse(Configuration config, String fullQualifiedClassName) throws JAXBException {
 		String fileName = config.getDirSource() + File.separator + fullQualifiedClassName.replace('.', File.separatorChar) + ".xml";
-		
+
 		return (XmlClass) unmarshaller.unmarshal(new File(fileName));
 	}
 
-	public void encode(XmlClass xml, Configuration config) throws JAXBException {
+	public boolean encode(XmlClass xml, Configuration config) throws JAXBException {
 		FileOutputStream out = null;
-		
+
 		try {
 			out = new FileOutputStream(config.getDirSource() + File.separator + xml.getName().replace('.', File.separatorChar) + ".xml");
 			marshaller.marshal(xml, out);
+			return true;
 		} catch(IOException e) {
 			System.err.println("Cannot write to file: " + e);
 		} finally {
@@ -77,7 +78,7 @@ public class Parser {
 				}
 			}
 		}
-		
+		return false;
 	}
 
 	public XmlClass createClassModel(Class<?> c) {
@@ -107,7 +108,7 @@ public class Parser {
 				System.out.println("Skipping " + meth.getName());
 				continue;
 			}
-			
+
 			XmlMethod xmeth = testful.model.xml.ObjectFactory.factory.createMethod();
 
 			xmeth.setExposeState(meth.getReturnType().isArray());
@@ -132,19 +133,34 @@ public class Parser {
 	}
 
 	public static void main(String[] args) throws JAXBException, IOException {
-		Configuration config = new Configuration(); 
-		final URLClassLoader loader = new URLClassLoader(new URL[] { new File(config.getDirVanilla()).toURI().toURL() });
+		run("", new Object[args.length], args);
+	}
 
-		for(String className : args)
+	/**
+	 * @param	baseDir			the eclipse workspace directory.
+	 * @param	projectFolders	an array contains project folders, one for each class.
+	 * @param	classes			an array contains classes
+	 */
+	public static void run(String baseDir, Object[] projectFolders, Object[] classes) throws JAXBException, IOException {
+
+		Configuration config;
+		URLClassLoader loader;
+
+		for (int i = 0; i < classes.length; i++) {
 			try {
+				config = new Configuration(baseDir+(String)projectFolders[i]);
+				loader = new URLClassLoader(new URL[] { new File(config.getDirVanilla()).toURI().toURL()});
 
-				Class<?> clazz = loader.loadClass(className);
+				Class<?> clazz = loader.loadClass((String)classes[i]);
+
 				XmlClass xmlClass = singleton.createClassModel(clazz);
+				xmlClass.setInstrument(true);
 				singleton.encode(xmlClass, config);
-				
+
 			} catch(ClassNotFoundException e) {
 				System.err.println("Class not found: " + e);
 			}
+		}
 	}
 
 	private static class TestfulValidationEventHandler implements ValidationEventHandler {
@@ -153,7 +169,7 @@ public class Parser {
 		public boolean handleEvent(ValidationEvent ve) {
 			if(ve.getSeverity() == ValidationEvent.FATAL_ERROR || ve.getSeverity() == ValidationEvent.ERROR) {
 				ValidationEventLocator locator = ve.getLocator();
-				//Print message from valdation event
+				//Print message from validation event
 				System.out.println("Invalid booking document: " + locator.getURL());
 				System.out.println("Error: " + ve.getMessage());
 				//Output line and column number
