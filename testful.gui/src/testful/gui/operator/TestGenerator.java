@@ -46,7 +46,7 @@ public class TestGenerator extends Job implements ITestfulOperator{
 		String logFile = config.getDirGeneratedTests() + File.separator + config.getCut() + System.currentTimeMillis() + ".log";
 
 		try {
-			monitor.beginTask("generating test cases: ", time*1000);
+			monitor.beginTask("Generating test cases: ", time*1000);
 
 			Launcher.run(args, new IUpdate.Callback() {
 
@@ -57,7 +57,7 @@ public class TestGenerator extends Job implements ITestfulOperator{
 					if(lastUpdate < 0) lastUpdate = start;
 
 					if(current > end) {
-						monitor.beginTask("Testful is generating test cases: ", IProgressMonitor.UNKNOWN);
+						monitor.beginTask("Generating test cases: ", IProgressMonitor.UNKNOWN);
 						monitor.subTask("Saving...");
 					} else {
 						monitor.worked((int) (current-lastUpdate));
