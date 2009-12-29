@@ -91,7 +91,7 @@ public class TestfulWizard extends Wizard {
 
 	@Override
 	public boolean performFinish() {
-		if (currentPage == pXml && currentPage == pAux) {
+		if (currentPage == pXml || currentPage == pAux) {
 			pInst.finish();
 		}
 		pTest.finish();

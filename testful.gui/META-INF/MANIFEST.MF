@@ -7,7 +7,7 @@ Bundle-Activator: testful.gui.Activator
 Require-Bundle: org.eclipse.ui,
  org.eclipse.core.runtime,
  org.eclipse.core.resources,
- testful.core;bundle-version="1.0.0"
+ testful.core;bundle-version="[1.0.0,2.0.0)"
 Bundle-ActivationPolicy: lazy
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ClassPath: .
