@@ -22,6 +22,7 @@ import testful.model.ReferenceFactory;
 import testful.model.Test;
 import testful.model.TestCluster;
 import testful.model.TestCoverage;
+import testful.model.TestsCollection;
 import testful.runner.ClassFinder;
 import testful.runner.IRunner;
 import testful.utils.ElementManager;
@@ -47,6 +48,10 @@ public abstract class RandomTest {
 	protected final TrackerDatum[] data;
 
 	protected final MersenneTwisterFast random;
+	
+	private boolean keepTests = false; //questo attributo � per leggibilit�, avreo potuto usare testContainer==null come flag
+	private TestsCollection testContainer = new TestsCollection();
+	private boolean keepRunning = true;
 	
 	public RandomTest(IRunner runner, boolean enableCache, ClassFinder finder, TestCluster cluster, ReferenceFactory refFactory, TrackerDatum ... data) {
 		long seed = System.currentTimeMillis();
@@ -77,7 +82,7 @@ public abstract class RandomTest {
 
 			@Override
 			public void run() {
-				while(true)
+				while(keepRunning)
 					try {
 						Entry<Operation[], Future<ElementManager<String, CoverageInformation>>> entry = tests.take();
 						ElementManager<String, CoverageInformation> cov = entry.getValue().get();
@@ -86,6 +91,8 @@ public abstract class RandomTest {
 						
 						final TestCoverage testCoverage = new TestCoverage(new Test(cluster, refFactory, entry.getKey()), cov);
 						optimal.update(testCoverage);
+						if (keepTests) //store tests in container
+							testContainer.insertTest(testCoverage.getRating(), testCoverage.getTest());
 
 					} catch(InterruptedException e) {
 						System.err.println("Interrupted: " + e);
@@ -103,7 +110,7 @@ public abstract class RandomTest {
 
 			@Override
 			public void run() {
-				while(true) {
+				while(keepRunning) {
 					try {
 						TimeUnit.SECONDS.sleep(1);
 					} catch(InterruptedException e) {
@@ -143,4 +150,22 @@ public abstract class RandomTest {
 		t.start();
 	}
 
+	/**
+	 * @author Tudor
+	 * 	Tells the notification threads to stop
+	 */
+	public void stopNotificationThreads(){keepRunning = false;}
+	
+	/**
+	 * @author Tudor
+	 * @return The list of Tests(OpSequences) generated and selected by RT
+	 * Note: This function is useful only after it processes something :)
+	 */
+	public TestsCollection getResults(){return testContainer;}
+	
+	/**
+	 * This option enables RandomTest to keep all tests... for a later export
+	 * @author  Tudor
+	 */
+	public void setKeepTests(boolean input){this.keepTests = input;}
 }

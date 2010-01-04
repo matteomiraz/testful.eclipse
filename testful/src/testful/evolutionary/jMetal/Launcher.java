@@ -1,7 +1,10 @@
 package testful.evolutionary.jMetal;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.rmi.RemoteException;
 import java.util.Date;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -23,12 +26,23 @@ import org.kohsuke.args4j.Option;
 
 import testful.IUpdate;
 import testful.TestfulException;
+import testful.coverage.CoverageInformation;
+import testful.coverage.TrackerDatum;
+import testful.coverage.whiteBox.AnalysisWhiteBox;
 import testful.model.Operation;
+import testful.model.ReferenceFactory;
+import testful.model.TestCluster;
 import testful.model.TestfulProblem;
+import testful.model.TestsCollection;
+import testful.model.TestfulProblem.TestfulConfig;
+import testful.random.RandomTest;
+import testful.random.RandomTestSplit;
 import testful.regression.JUnitTestGenerator;
 import testful.runner.IRunner;
 import testful.runner.RunnerPool;
+import testful.utils.ElementManager;
 import testful.utils.TestfulLogger;
+import testful.utils.Utils;
 
 public class Launcher {
 
@@ -53,7 +67,7 @@ public class Launcher {
 	@Option(required = false, name = "-time", usage = "The maximum execution time (in seconds)")
 	private int time = 600;
 
-	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)") 
+	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)")
 	private int localSearchPeriod = 20;
 
 	@Option(required = false, name = "-disableLength", usage = "Removes the length of test from the multi-objective fitness")
@@ -101,10 +115,15 @@ public class Launcher {
 	@Option(required = false, name = "-popSize", usage = "The size of the population (# of individuals)")
 	private int popSize = 512;
 
+
+	//Random integration ************************************************************************************
+	@Option(required = false, name = "-smartAncestors", usage = "Use an enhanced initial population")
+	private boolean smartInitialPopulation;
+
 	private IRunner executor = null;
 
 	public IRunner getExecutor() {
-		if(executor == null) 
+		if(executor == null)
 			synchronized(this) {
 				if(executor == null) {
 					executor = RunnerPool.createExecutor("testful", noLocal);
@@ -146,15 +165,19 @@ public class Launcher {
 		logger_ = Configuration.logger_;
 		fileHandler_ = new FileHandler(baseDir + File.separator + "NSGAII_main.log");
 		logger_.addHandler(fileHandler_);
-		
+
+		//construct config
 		final TestfulProblem.TestfulConfig config;
 		if (opt.baseDir != null) config = new TestfulProblem.TestfulConfig(opt.baseDir);
 		else config = new TestfulProblem.TestfulConfig();
-		
 		config.setCut(opt.cut);
 		config.cluster.setRepoSize(opt.auxSize);
 		config.cluster.setRepoCutSize(opt.cutSize);
-		
+
+		config.setCut(opt.cut);
+		config.cluster.setRepoSize(opt.auxSize);
+		config.cluster.setRepoCutSize(opt.cutSize);
+
 		config.fitness.len = !opt.disableLength;
 		config.fitness.bug = opt.enableBug;
 		config.fitness.bbd = !(opt.disableBasicBlock || opt.disableBasicBlockCode);
@@ -162,20 +185,26 @@ public class Launcher {
 		config.fitness.brd = !(opt.disableBranch || opt.disableBranchCode);
 		config.fitness.brn = !(opt.disableBranch || opt.disableBranchContract);
 
-		// IExecutor executor, String cut, String aux, int indSize, int repoSize, int repoCutSize, boolean reloadClasses, boolean fitness_len, boolean fitness_beh, boolean fitness_bug, boolean fitness_brd, boolean fitness_brn, boolean fitness_dud, boolean fitness_dun) throws JMException {
 		JMProblem problem = JMProblem.getProblem(opt.getExecutor(), opt.enableCache, opt.reload, config);
+		if (opt.smartInitialPopulation) {
+			try {
+				problem.setInitPopulation(genSmartPopulation(opt, config, problem));
+			} catch (Exception e) {
+				logger_.warning("Cannot create the initial population: " + e.getMessage());
+			}
+		}
 
 		NSGAII<Operation> algorithm = new NSGAII<Operation>(problem);
 		algorithm.setPopulationSize(opt.popSize);
 		algorithm.setMaxEvaluations(opt.time * 1000);
 		algorithm.setInherit(!opt.disableFitnessInheritance);
 		algorithm.setInheritUniform(opt.fitnessInheritanceUniform);
-		
+
 		// Mutation and Crossover for Real codification
 		OnePointCrossoverVarLen<Operation> crossover = new OnePointCrossoverVarLen<Operation>();
 		crossover.setProbability(0.50);
 		crossover.setMaxLen(opt.maxSize);
-		
+
 		algorithm.setCrossover(crossover);
 
 		TestfulMutation mutation = new TestfulMutation();
@@ -187,7 +216,7 @@ public class Launcher {
 		/* Selection Operator */
 		Selection<Operation,Solution<Operation>> selection = new BinaryTournament2<Operation>();
 		algorithm.setSelection(selection);
-		
+
 		if(opt.localSearchPeriod > 0) {
 			LocalSearch<Operation> localSearch = new LocalSearchBranch(problem.getProblem());
 			algorithm.setImprovement(localSearch);
@@ -195,7 +224,7 @@ public class Launcher {
 		}
 
 		algorithm.register(new IUpdate.Callback() {
-			
+
 			@Override
 			public void update(long start, long current, long end, Map<String, Float> coverage) {
 
@@ -214,15 +243,15 @@ public class Launcher {
 				System.out.println(sb.toString());
 			}
 		});
-		
+
 		/* Execute the Algorithm */
 		long initTime = System.currentTimeMillis();
 		SolutionSet<Operation> population = algorithm.execute();
 		long estimatedTime = System.currentTimeMillis() - initTime;
-		
+
 		System.out.println("Total execution time: " + estimatedTime);
 		System.out.println("Population size: " + population.size());
-		
+
 
 		/* convert tests to jUnit */
 		int i = 0;
@@ -231,7 +260,55 @@ public class Launcher {
 			gen.read(File.separator + "TestFul" + i++, problem.getTest(t));
 
 		gen.writeSuite();
-		
+
 		System.exit(0);
 	}//main
+
+	/**
+	 * This function uses random.Launcher to generate a smarter initial population
+	 * @author Tudor
+	 * @return
+	 * @throws TestfulException
+	 * @throws RemoteException
+	 * @throws ClassNotFoundException
+	 * @throws FileNotFoundException
+	 */
+	private static TestsCollection genSmartPopulation(Launcher opt, TestfulConfig config, JMProblem problem) throws TestfulException, RemoteException, ClassNotFoundException, FileNotFoundException{
+		System.out.println("Generating smart population");
+
+		TestCluster tc = problem.getProblem().getCluster();
+
+		ReferenceFactory refFactory = new ReferenceFactory(tc, opt.cutSize, opt.auxSize);
+
+		AnalysisWhiteBox whiteAnalysis = AnalysisWhiteBox.read(config.getDirInstrumented(), config.getCut());
+		TrackerDatum[] data = Utils.readData(whiteAnalysis);
+
+		RandomTest rt = new RandomTestSplit(opt.getExecutor(), opt.enableCache, problem.getProblem().getFinder() , tc, refFactory, data);
+
+		rt.setKeepTests(true); //set whether to save tests or not
+
+		rt.startNotificationThread(false);
+
+		rt.test(30000);
+
+		try {
+			while(rt.getRunningJobs() > 0)
+				Thread.sleep(1000);
+		} catch(InterruptedException e) {}
+
+		ElementManager<String, CoverageInformation> coverage = rt.getExecutionInformation();
+
+		for(CoverageInformation info : coverage) {
+			PrintWriter writer = TestfulLogger.singleton.getWriter("coverage-" + info.getKey() + ".txt");
+			writer.println(info.getName() + ": " + info.getQuality());
+			writer.println();
+			writer.println(info);
+			writer.close();
+		}
+
+		rt.stopNotificationThreads(); //Stop threads instead of stoping the entire system
+		problem.getProblem().getCluster().clearCache(); //Leave it as you found it
+		//throw results in case I'm being used by another program
+		return rt.getResults();
+	} //genSmartPopulation
 } // NSGAII_main

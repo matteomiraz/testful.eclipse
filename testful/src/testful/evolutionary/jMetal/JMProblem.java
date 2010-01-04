@@ -16,6 +16,7 @@ import testful.coverage.CoverageInformation;
 import testful.model.Operation;
 import testful.model.Test;
 import testful.model.TestfulProblem;
+import testful.model.TestsCollection;
 import testful.model.TestfulProblem.TestfulConfig;
 import testful.runner.IRunner;
 import testful.utils.ElementManager;
@@ -27,7 +28,23 @@ public class JMProblem extends Problem<Operation> {
 	public static JMProblem currentProblem;
 
 	private final TestfulProblem problem;
-	
+	public TestfulProblem getProblem() {return problem; }
+
+	private TestsCollection initialPopulation; //Tudor
+
+	/**
+	 * Sets the initial population, turning off the internal generator.
+	 * If no initial population is set, then it will be generated internally
+	 * @author Tudor
+	 * @param iPopulation
+	 */
+	public void setInitPopulation(TestsCollection iPopulation){
+		if (iPopulation==null){
+			System.err.println("JMProblem - Setting Iniital Populaton: initialPopulation is null");
+		}
+		initialPopulation = iPopulation;
+	}
+
 	public static JMProblem getProblem(IRunner executor, boolean enableCache, boolean reloadClasses, TestfulConfig config) throws JMException {
 		currentProblem = new JMProblem(executor, enableCache, reloadClasses, config);
 		return currentProblem;
@@ -38,16 +55,14 @@ public class JMProblem extends Problem<Operation> {
 			problemName_ = "Testful";
 
 			config.fitness.toMinimize = true;
-			
 			problem = new TestfulProblem(executor, enableCache, reloadClasses, config);
-
 			numberOfObjectives_ = problem.getNumObjs();
 
 		} catch (TestfulException e) {
 			throw new JMException(e.getMessage());
 		}
 	}
-	
+
 	public Test getTest(Solution<Operation> sol) {
 		return problem.createTest(sol.getDecisionVariables().variables_);
 	}
@@ -114,16 +129,26 @@ public class JMProblem extends Problem<Operation> {
 	@Override
 	public List<Operation> generateNewDecisionVariable() {
 		final int size = 10;
-		List<Operation> ret = new ArrayList<Operation>(size);
+		List<Operation> ret;
+		if (initialPopulation!=null){ //in case initial population was set
+
+			Operation[] ops = initialPopulation.giveBestTest();
+			if (ops!=null){ //container might be empty
+				//Transform array in ArrayList
+				ret = new ArrayList<Operation>(ops.length+1);
+				for (int i=0; i<ops.length;i++){
+					//usando l'indice, spero di non cambiare l'ordine delle operazioni
+					ret.add(i, ops[i].adapt(problem.getCluster(), problem.getRefFactory()));
+				}
+				return ret; //and return it
+			}
+		} //in case all TestContainer stuff isn't there... work will proceed as usual
+		ret = new ArrayList<Operation>(size);
 
 		for (int i = 0; i < size; i++)
 			ret.add(Operation.randomlyGenerate(problem.getCluster(), problem.getRefFactory(), PseudoRandom.getMersenneTwisterFast()));
 
 		return ret;
-	}
-
-	TestfulProblem getProblem() {
-		return problem;
 	}
 
 	@Override

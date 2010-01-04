@@ -24,18 +24,27 @@ public class TestfulLogger {
 
 	private TestfulLogger() {
 		runId = System.currentTimeMillis();
+		//this baseDir if gets like "" will be a file in the PROJECT, just like src, and other folders
 		baseDir = new File("run" + File.separator + runId);
-
+		//baseDir is effectively a DIR, like run/12319581254/ and stuff will get dumped there
 		baseDir.mkdirs();
 
 		System.err.println("Logging data to " + baseDir.getAbsolutePath());
 	}
-
+	/**
+	 * @return the absolute path of the directory on which Logger dumps its files
+	 */
 	public String getBaseDir() {
 		return baseDir.getAbsolutePath();
 	}
-
+	/**
+	 * Writes the configuration parameters to a file
+	 * @param params The parameters to be written on a file
+	 * @return the absolute path of the file to which it has been written
+	 * @throws IOException if the file cannot be written
+	 */
 	public String writeParameters(Set<String> params) throws IOException {
+		//Actually I do: baseDir = "run/1211/" + filename does a very nice file:
 		File propFile = new File(baseDir, "parameters.txt");
 
 		PrintWriter wr = new PrintWriter(propFile);
@@ -145,7 +154,7 @@ public class TestfulLogger {
 
 		CombinedCoverageWriter(PrintWriter wr) {
 			this.wr = wr;
-			this.init = System.currentTimeMillis();
+			init = System.currentTimeMillis();
 		}
 
 		public void write(int gen, long inv, ElementManager<String, CoverageInformation> infos, Map<String, Set<TestCoverage>> optimal) {
@@ -176,7 +185,7 @@ public class TestfulLogger {
 					for(Test s : solutions)
 						tot += s.getTest().length;
 				}
-				
+
 				sb.append(";").append(infos.get(key).getQuality()).append(";").append(nSolutions).append(";").append(tot);
 			}
 			wr.println(sb.toString());

@@ -66,7 +66,7 @@ public class Launcher {
 	@Option(required = false, name = "-baseDir", usage = "Specify the base directory.")
 	private String cutBase = "cut";
 
-	public static void main(String[] args) throws ClassNotFoundException {
+	public static void main(String[] args) throws ClassNotFoundException{
 		testful.TestFul.printHeader("Random testing");
 
 		Launcher rt = new Launcher();
@@ -75,7 +75,7 @@ public class Launcher {
 		try {
 			// parse the arguments.
 			parser.parseArgument(args);
-
+			//writes parameters like -cut, -cutSize, -auxSize on a file
 			TestfulLogger.singleton.writeParameters(rt.getSettings());
 
 			rt.run();
@@ -112,7 +112,7 @@ public class Launcher {
 		return ret;
 	}
 
-	private void run() throws ClassNotFoundException, IOException, TestfulException {
+	private void run() throws ClassNotFoundException, IOException, TestfulException{
 		
 		TestfulConfig config = new TestfulConfig(cutBase);
 		config.setCut(cut);
@@ -137,7 +137,7 @@ public class Launcher {
 		else rt = new RandomTestSplit(exec, enableCache, finder, tc, refFactory, data);
 
 		Operation.GEN_NEW = pGenNewObj;
-
+		
 		rt.startNotificationThread(!noStats);
 
 		rt.test(time * 1000);
@@ -145,8 +145,7 @@ public class Launcher {
 		try {
 			while(rt.getRunningJobs() > 0)
 				Thread.sleep(1000);
-		} catch(InterruptedException e) {
-		}
+		} catch(InterruptedException e) {}
 
 		ElementManager<String, CoverageInformation> coverage = rt.getExecutionInformation();
 		if(!noStats) for(CoverageInformation info : coverage)
@@ -160,6 +159,8 @@ public class Launcher {
 			writer.close();
 		}
 
+		rt.stopNotificationThreads(); //Stop threads instead of stoping the entire system
+			
 		System.exit(0);
 	}
 }
