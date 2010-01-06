@@ -3,6 +3,7 @@ package testful.gui;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 
 import org.eclipse.jface.action.IAction;
 import org.eclipse.jface.dialogs.MessageDialog;
@@ -21,8 +22,6 @@ public class ActionCreateXMLModel implements IObjectActionDelegate {
 
 	private Shell shell;
 	private ISelection selection;
-	private ArrayList<String> classes;
-	private ArrayList<String> sourceFolders;
 
 	/**
 	 * @see IObjectActionDelegate#setActivePart(IAction, IWorkbenchPart)
@@ -37,14 +36,14 @@ public class ActionCreateXMLModel implements IObjectActionDelegate {
 	public void run(IAction action) {
 		if (!selection.isEmpty()) {
 			try {
-				classes = new ArrayList<String>();
-				sourceFolders = new ArrayList<String>();
+				List<String> classes = new ArrayList<String>();
+				List<String> sourceFolders = new ArrayList<String>();
 				Iterator elements = ((IStructuredSelection)selection).iterator();
 
 				while(elements.hasNext())
-					addClass(Util.getISelectionPath(elements.next()));
+					addClass(sourceFolders, classes, Util.getISelectionPath(elements.next()));
 
-				CreateXmlModel createXmlModel = new CreateXmlModel(sourceFolders.toArray(), classes.toArray());
+				CreateXmlModel createXmlModel = new CreateXmlModel(sourceFolders.toArray(new String[0]), classes.toArray(new String[0]));
 				createXmlModel.run();
 				Result result = createXmlModel.Result();
 				if (!result.isSuccess)
@@ -64,7 +63,7 @@ public class ActionCreateXMLModel implements IObjectActionDelegate {
 			MessageDialog.openWarning (shell, "Testful", "No class selected!");
 	}
 
-	private boolean addClass(String path) {
+	private boolean addClass(List<String> sourceFolders, List<String> classes, String path) {
 		try {
 
 			String	classPath = Util.getClassPath(path),

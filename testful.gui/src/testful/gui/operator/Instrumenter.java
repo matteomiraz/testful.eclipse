@@ -5,15 +5,15 @@ import java.lang.reflect.InvocationTargetException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.core.Instrument;
 
 public class Instrumenter implements IRunnableWithProgress, ITestfulOperator {
 
-	private Configuration config;
+	private ConfigCut config;
 	private Result result = null;
 
-	public Instrumenter(Configuration config) {
+	public Instrumenter(ConfigCut config) {
 		this.config = config;
 	}
 
@@ -23,7 +23,7 @@ public class Instrumenter implements IRunnableWithProgress, ITestfulOperator {
 
 		try {
 			StringBuilder msg = new StringBuilder();
-			boolean ok  = Instrument.instrument(config.getCut(), config.getDirBase(), msg);
+			boolean ok  = Instrument.instrument(config.getCut(), config.getDirBase().getAbsolutePath(), msg);
 			result = new Result(ok, (Object) msg.toString());
 		} catch (Exception e) {
 			result =new Result(false, (Object) e.getMessage());

@@ -114,9 +114,7 @@
 		    <exclude name="testful/utils/**/*.class"/>
 	        <exclude name="testful/runner/ClassFinder*.class"/>
     	    <exclude name="testful/runner/TestfulClassLoader*.class"/>
-        	<exclude name="testful/TestFul.class"/>
-            <exclude name="testful/TestfulException.class"/>
-            <exclude name="testful/Configuration.class"/>
+        	<exclude name="testful/*.class"/>
 
 			<exclude name="org/apache/commons/jexl/**/*.class"/>
 			<exclude name="org/apache/commons/logging/**/*.class"/>
@@ -184,7 +182,8 @@
 
 			<exclude name="jmetal/base/**/*.class"/>
 			<exclude name="jmetal/util/**/*.class"/>
-			<exclude name="testful/evolutionary/jMetal/**/*.class"/>
+			<exclude name="testful/evolutionary/**/*.class"/>
+			<exclude name="testful/random/**/*.class"/>
 		</delete>
 	</target>
 	

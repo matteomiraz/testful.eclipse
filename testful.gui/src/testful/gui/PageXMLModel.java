@@ -9,18 +9,20 @@ import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.layout.RowLayout;
 import org.eclipse.swt.widgets.Button;
-import org.eclipse.swt.widgets.Combo;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Event;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
-import org.eclipse.swt.widgets.Text;
 import org.eclipse.swt.widgets.Tree;
 import org.eclipse.swt.widgets.TreeItem;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.gui.TestfulImage.IMAGE;
+import testful.gui.control.ControlCombo;
+import testful.gui.control.ControlLabel;
+import testful.gui.control.ControlText;
+import testful.gui.control.ITestfulControl;
 import testful.gui.operator.Result;
 import testful.gui.operator.SaveXmlModel;
 import testful.model.xml.XmlAux;
@@ -35,7 +37,7 @@ public class PageXMLModel extends WizardPage implements ITestfulWizardPage {
 	private boolean createHeader = true;
 
 	private XmlClass xmlClass;
-	private Configuration config;
+	private ConfigCut config;
 
 	private Composite parent;
 	private Composite cmpModel;
@@ -51,7 +53,7 @@ public class PageXMLModel extends WizardPage implements ITestfulWizardPage {
 	private GridData gdtH;
 	private TestfulImage imageLoader;
 
-	public PageXMLModel(Configuration config, XmlClass xmlClass)  {
+	public PageXMLModel(ConfigCut config, XmlClass xmlClass)  {
 		super("XMLModel");
 		setTitle("XML Model");
 		setDescription("Can modify \"" + config.getCut() +  "\" model destrcription");
@@ -60,7 +62,7 @@ public class PageXMLModel extends WizardPage implements ITestfulWizardPage {
 		this.xmlClass = xmlClass;
 	}
 
-	public PageXMLModel(Configuration config, XmlClass xmlClass, boolean createHeader) {
+	public PageXMLModel(ConfigCut config, XmlClass xmlClass, boolean createHeader) {
 		this(config, xmlClass);
 		this.createHeader = createHeader;
 	}
@@ -452,145 +454,101 @@ public class PageXMLModel extends WizardPage implements ITestfulWizardPage {
 
 		if (selectedItem instanceof XmlAux) {
 
-			XmlAux xmlAux = (XmlAux) selectedItem;
+			final XmlAux xmlAux = (XmlAux) selectedItem;
+
 			new ControlLabel(cmpSelectedItem, "Name:");
-			new ControlText(cmpSelectedItem, xmlAux.getName()!=null?xmlAux.getName():"", true)
-			.addListener(SWT.Modify, new Listener() {
+			new ControlText(parent, xmlAux.getName(), ControlText.getRequired(new ITestfulControl<String>() {
 				@Override
-				public void handleEvent(Event e) {
-					XmlAux xmlAux = (XmlAux) selectedItem;
-					Text txt = ((Text)e.widget);
-					if (!txt.getText().isEmpty()) {
-						xmlAux.setName(txt.getText());
-						updateTree();
-					}
+				public void update(String newValue) throws Exception {
+					xmlAux.setName(newValue);
+					updateTree();
 				}
-			});
+			}));
+
 
 		} else if (selectedItem instanceof XmlMethod) {
 
-			XmlMethod xmlMethod = (XmlMethod)selectedItem;
+			final XmlMethod xmlMethod = (XmlMethod)selectedItem;
 
 			new ControlLabel(cmpSelectedItem, "Name:");
-			new ControlText(cmpSelectedItem, xmlMethod.getName()!=null?xmlMethod.getName():"", true)
-			.addListener(SWT.Modify, new Listener() {
+			new ControlText(cmpSelectedItem, xmlMethod.getName(), ControlText.getRequired(new ITestfulControl<String>() {
 				@Override
-				public void handleEvent(Event e) {
-					XmlMethod xmlMethod = (XmlMethod) selectedItem;
-					Text txt = ((Text)e.widget);
-					if (!txt.getText().isEmpty()) {
-						xmlMethod.setName(txt.getText());
-						updateTree();
-					}
+				public void update(String newValue) throws Exception {
+					xmlMethod.setName(newValue);
+					updateTree();
 				}
-			});
+			}));
 
 			new ControlLabel(cmpSelectedItem, "Kind:");
-			new ControlCombo(cmpSelectedItem, XmlMethod.Kind.values(), xmlMethod.getKind()!=null?xmlMethod.getKind().name():"")
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getEnumCombo(cmpSelectedItem, XmlMethod.Kind.class, xmlMethod.getKind(), new ITestfulControl<XmlMethod.Kind>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					if (cmb.getSelectionIndex() > -1){
-						XmlMethod xmlMethod = (XmlMethod) selectedItem;
-						//xmlMethod.setKind(Kind.fromValue(cmb.getItem(cmb.getSelectionIndex())));
-						for(Kind c : Kind.values())
-							if(c.name().equals(cmb.getItem(cmb.getSelectionIndex()))) {
-								xmlMethod.setKind(c);
-								break;
-							}
-					}
+				public void update(XmlMethod.Kind newValue) {
+					xmlMethod.setKind(newValue);
 				}
 			});
 
 			new ControlLabel(cmpSelectedItem, "Expose State:");
-			Object[] boolValue = {"False", "True"};
-			new ControlCombo(cmpSelectedItem, boolValue, xmlMethod.isExposeState()!=null?xmlMethod.isExposeState().toString():"false")
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getBooleanCombo(cmpSelectedItem, xmlMethod.isExposeState(), new ITestfulControl<Boolean>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					XmlMethod xmlMethod = (XmlMethod) selectedItem;
-					xmlMethod.setExposeState(cmb.getSelectionIndex() == 1);
+				public void update(Boolean newValue) {
+					xmlMethod.setExposeState(newValue);
 				}
 			});
 
 		}else if (selectedItem instanceof XmlParameter) {
 
-			XmlParameter xmlParameter = (XmlParameter) selectedItem;
+			final XmlParameter xmlParameter = (XmlParameter) selectedItem;
 
 			new ControlLabel(cmpSelectedItem, "Type:");
-			new ControlText(cmpSelectedItem, xmlParameter.getType()!=null?xmlParameter.getType():"", true)
-			.addListener(SWT.Modify, new Listener() {
+			new ControlText(cmpSelectedItem, xmlParameter.getType(), ControlText.getRequired(new ITestfulControl<String>() {
 				@Override
-				public void handleEvent(Event e) {
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					Text txt = ((Text)e.widget);
-					if (!txt.getText().isEmpty()) {
-						xmlParameter.setType(txt.getText());
-						updateTree();
-					}
-				}}
-			);
+				public void update(String newValue) throws Exception {
+					xmlParameter.setType(newValue);
+					updateTree();
+				}
+			}));
 
 			new ControlLabel(cmpSelectedItem, "Is array:");
-			new ControlBoolean(cmpSelectedItem, xmlParameter.isArray())
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getBooleanCombo(cmpSelectedItem, xmlParameter.isArray(), new ITestfulControl<Boolean>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					xmlParameter.setArray(cmb.getSelectionIndex() == 1);
+				public void update(Boolean newValue) throws Exception {
+					xmlParameter.setArray(newValue);
 				}
 			});
 
 			new ControlLabel(cmpSelectedItem, "Is captured:");
-			new ControlBoolean(cmpSelectedItem, xmlParameter.isCaptured())
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getBooleanCombo(cmpSelectedItem, xmlParameter.isCaptured(), new ITestfulControl<Boolean>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					xmlParameter.setCaptured(cmb.getSelectionIndex() == 1);
+				public void update(Boolean newValue) throws Exception {
+					xmlParameter.setCaptured(newValue);
 				}
 			});
 
+
 			new ControlLabel(cmpSelectedItem, "Is mutated:");
-			new ControlBoolean(cmpSelectedItem, xmlParameter.isMutated())
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getBooleanCombo(cmpSelectedItem, xmlParameter.isMutated(), new ITestfulControl<Boolean>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					xmlParameter.setMutated(cmb.getSelectionIndex() == 1);
+				public void update(Boolean newValue) throws Exception {
+					xmlParameter.setMutated(newValue);
 				}
 			});
 
 			new ControlLabel(cmpSelectedItem, "Is exposed by return:");
-			new ControlBoolean(cmpSelectedItem, xmlParameter.isExposedByReturn())
-			.addListener(SWT.Selection  , new Listener() {
+			ControlCombo.getBooleanCombo(cmpSelectedItem, xmlParameter.isExposedByReturn(), new ITestfulControl<Boolean>() {
 				@Override
-				public void handleEvent(Event e) {
-					Combo cmb = (Combo)e.widget;
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					xmlParameter.setExposedByReturn(cmb.getSelectionIndex() == 1);
+				public void update(Boolean newValue) throws Exception {
+					xmlParameter.setExposedByReturn(newValue);
 				}
 			});
 
 			new ControlLabel(cmpSelectedItem, "Exchange State With:");
-			new ControlText(cmpSelectedItem, xmlParameter.getExchangeStateWith()!=null?xmlParameter.getExchangeStateWith():"", false)
-			.addListener(SWT.Modify, new Listener() {
+			new ControlText(cmpSelectedItem, xmlParameter.getExchangeStateWith(), new ITestfulControl<String>() {
 				@Override
-				public void handleEvent(Event e) {
-					XmlParameter xmlParameter = (XmlParameter) selectedItem;
-					Text txt = ((Text)e.widget);
-					if (!txt.getText().isEmpty()) {
-						xmlParameter.setExchangeStateWith(txt.getText());
-						updateTree();
-					}
+				public void update(String newValue) throws Exception {
+					xmlParameter.setExchangeStateWith(newValue);
+					updateTree();
 				}
 			});
-
 		}
 
 		cmpProperty.layout();

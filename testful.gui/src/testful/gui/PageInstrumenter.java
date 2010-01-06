@@ -14,14 +14,14 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Listener;
 import org.eclipse.swt.widgets.Text;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.gui.TestfulImage.IMAGE;
 import testful.gui.operator.Instrumenter;
 import testful.gui.operator.Result;
 
 public class PageInstrumenter extends WizardPage implements ITestfulWizardPage {
 
-	private Configuration config;
+	private ConfigCut config;
 	private Result res;
 
 	private Composite parent;
@@ -32,7 +32,7 @@ public class PageInstrumenter extends WizardPage implements ITestfulWizardPage {
 	private Label lblIcon;
 	private Text txtResult;
 
-	public PageInstrumenter(Configuration config) {
+	public PageInstrumenter(ConfigCut config) {
 		super("Intrumenter");
 		setTitle("Intrumenter");
 		setDescription("Testful instruments your classes");
@@ -115,7 +115,7 @@ public class PageInstrumenter extends WizardPage implements ITestfulWizardPage {
 
 			res = inst.Result();
 			if (res.isSuccess) {
-				lblResult.setText("Intrumenting complited successful!");
+				lblResult.setText("Instrumentation performed successfully!");
 				lblResult.setForeground(parent.getDisplay().getSystemColor(SWT.COLOR_DARK_GREEN));
 				lblIcon.setImage(new TestfulImage(parent.getDisplay()).loadImage(IMAGE.TESTFUL));
 			} else {

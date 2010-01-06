@@ -1,19 +1,9 @@
 package testful.coverage;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutput;
-import java.io.ObjectOutputStream;
-import java.io.PrintWriter;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,29 +14,23 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.zip.GZIPInputStream;
-import java.util.zip.GZIPOutputStream;
 
 import testful.model.Test;
 import testful.model.TestSplitter;
 import testful.runner.ClassFinder;
 import testful.runner.Context;
+import testful.runner.ExecutionManager;
 import testful.runner.IRunner;
+import testful.runner.RunnerPool;
 import testful.utils.Cloner;
 import testful.utils.ElementManager;
-import testful.utils.TestfulLogger;
 
-public class RunnerCaching {
+public class RunnerCaching implements IRunner{
 
 	private boolean enabled;
 
 	private final static int RAM_SIZE = 10000;
 	private final static int SCORE = 8;
-
-	private final static boolean DISK_ENABLED = false;
-	
-	private final File dir; 
 
 	private long origJobs = 0;
 
@@ -62,34 +46,32 @@ public class RunnerCaching {
 	/** evaluated tests */
 	private final Cache<TestWithData, ElementManager<String,CoverageInformation>> cache;
 
-	/** key: hex(hash)-len  value: uniqueId */
-	private final Map<String, Set<String>> diskEntries;
+	public RunnerCaching(boolean enableCache) {
+		runner = RunnerPool.getRunnerPool();
+		enabled = enableCache;
 
-	public RunnerCaching(IRunner runner, boolean enableCache) {
-		this.runner = runner;
-		this.enabled = enableCache;
-
-		this.evaluating = new HashMap<TestWithData, Future<ElementManager<String,CoverageInformation>>>();
-		this.cache = new Cache<TestWithData, ElementManager<String,CoverageInformation>>(RAM_SIZE, SCORE);
-
-		if(DISK_ENABLED) {
-			this.diskEntries = new LinkedHashMap<String, Set<String>>();
-			this.dir = new File(TestfulLogger.singleton.getBaseDir(), "cache");
-			this.dir.mkdir();
-		} else {
-			this.diskEntries = null;
-			this.dir = null;
-		}
+		evaluating = new HashMap<TestWithData, Future<ElementManager<String,CoverageInformation>>>();
+		cache = new Cache<TestWithData, ElementManager<String,CoverageInformation>>(RAM_SIZE, SCORE);
 	}
 
-	private long timeSplit = 0; 
+	@Override
+	public boolean addRemoteWorker(String rmiAddress) {
+		return runner.addRemoteWorker(rmiAddress);
+	}
+
+	@Override
+	public <T extends Serializable> Future<T> execute(Context<T, ? extends ExecutionManager<T>> ctx) {
+		return runner.execute(ctx);
+	}
+
+	private long timeSplit = 0;
 	private long timeReorganize = 0;
 	private long timeReferenceSort = 0;
 	private long timePrepare = 0;
 	private long timePostProcess = 0;
 
 	/**
-	 * Split the test into smaller parts, and execute each of them independelty.
+	 * Split the test into smaller parts, and execute each of them independently.
 	 * Uses a caching mechanism to ensure that each part is executed only once: subsequent evaluations reuses previous result.
 	 */
 	public Future<ElementManager<String, CoverageInformation>> executeParts(ClassFinder finder, boolean reloadClasses, Test test, TrackerDatum[] data) {
@@ -147,9 +129,9 @@ public class RunnerCaching {
 		enabled = false;
 	}
 
-	private long timeTot = 0; 
-	private long timeDisk = 0; 
-	private long timeMiss = 0; 
+	private long timeTot = 0;
+	private long timeDisk = 0;
+	private long timeMiss = 0;
 
 	private void execute(ClassFinder finder, boolean reloadClasses, Test test, TrackerDatum[] data, CachingFuture ret) {
 		long start = System.nanoTime();
@@ -170,7 +152,7 @@ public class RunnerCaching {
 		start = System.nanoTime();
 
 		TestWithData testWithData = new TestWithData(test, data);
-		
+
 		ElementManager<String, CoverageInformation> cov;
 		if((cov = cache.get(testWithData)) == null) {
 			synchronized(evaluating) {
@@ -180,33 +162,19 @@ public class RunnerCaching {
 						cacheHitRam++;
 						ret.add(testWithData, fut);
 					} else {
-						cov = null;
-						if(DISK_ENABLED) {
-							long startd = System.nanoTime();
-							cov = readFromDisk(testWithData);
-							long stopd = System.nanoTime();
-							timeDisk += (stopd - startd);
-						}
-						if(cov != null) {
-							cacheHitDisk++;
+						long startm = System.nanoTime();
 
-							ret.add(cov);
-							cache.put(testWithData, cov);
-						} else {
-							long startm = System.nanoTime();
+						cacheMiss++;
+						Context<ElementManager<String, CoverageInformation>, CoverageExecutionManager> ctx = CoverageExecutionManager.getContext(finder, test, data);
+						ctx.setRecycleClassLoader(!reloadClasses);
+						fut = runner.execute(ctx);
 
-							cacheMiss++;
-							Context<ElementManager<String, CoverageInformation>, CoverageExecutionManager> ctx = CoverageExecutionManager.getContext(finder, test, data);
-							ctx.setRecycleClassLoader(!reloadClasses);
-							fut = runner.execute(ctx);
+						evaluating.put(testWithData, fut);
+						ret.add(testWithData, fut);
 
-							evaluating.put(testWithData, fut);
-							ret.add(testWithData, fut);
+						long stopm = System.nanoTime();
 
-							long stopm = System.nanoTime();
-
-							timeMiss += (stopm-startm);
-						}
+						timeMiss += (stopm-startm);
 					}
 					timeTot += (System.nanoTime() - start);
 					return;
@@ -217,66 +185,6 @@ public class RunnerCaching {
 		cacheHitRam++;
 		ret.add(cov);
 		timeTot += (System.nanoTime() - start);
-	}
-
-	private AtomicLong unique = new AtomicLong();
-
-	public void writeToDisk(TestWithData test, ElementManager<String,CoverageInformation> cov) {
-		String hash = Integer.toHexString(test.hashCode());
-		String time = Long.toHexString(unique.incrementAndGet());
-
-		String name = hash + "-" + test.test.getTest().length + "-" + test.data.length + "-" + time;
-
-		File file = new File(dir, name + ".cache.gz");
-		try {
-			if(file.exists()) throw new IOException("file name collision!");
-
-			Set<String> set = diskEntries.get(hash + "-" + test.test.getTest().length + "-" + test.data.length);
-			if(set == null) {
-				set = new HashSet<String>(1);
-				diskEntries.put(hash + "-" + test.test.getTest().length + "-" + test.data.length, set);
-			}
-			set.add(time);
-
-			ObjectOutput out = new ObjectOutputStream(new GZIPOutputStream(new FileOutputStream(file)));
-			out.writeObject(test);
-			out.writeObject(cov);
-			out.close();
-
-		} catch(IOException e) {
-			System.err.println("Cannot write the cache to disk: " + e);
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	public ElementManager<String,CoverageInformation> readFromDisk(TestWithData test) {
-		String hash = Integer.toHexString(test.hashCode());
-		final String fileNamePrefix = hash + "-" + test.test.getTest().length + "-" + test.data.length;
-
-		Set<String> suffixes = diskEntries.get(fileNamePrefix);
-		if(suffixes == null) return null;
-
-		for(String s : suffixes) {
-			File f = new File(dir, fileNamePrefix + "-" + s + ".cache.gz");
-			try {
-				ObjectInput in = new ObjectInputStream(new GZIPInputStream(new FileInputStream(f)));
-				TestWithData t = (TestWithData) in.readObject();
-
-				if(test.equals(t)) {
-					ElementManager<String, CoverageInformation> cov = (ElementManager<String, CoverageInformation>) in.readObject();
-					in.close();
-					return cov;
-				}
-
-				in.close();
-			} catch(IOException e) {
-				System.err.println("Cannot read the cache from disk: " + e);
-			} catch(ClassNotFoundException e) {
-				System.err.println("Cannot read the cache from disk: " + e);
-			}
-		}
-
-		return null;
 	}
 
 	public void updateCacheScore() {
@@ -297,10 +205,8 @@ public class RunnerCaching {
 		totCacheAccess += cacheAccess;
 
 		String ret = String.format("  Cache: %5.2f%% full; hit ratio: %5.2f%% (%5.2f%% global)", cache.size()*100.0/cache.getMaxSize(), cacheHit*100.0/cacheAccess, totCacheHit*100.0/totCacheAccess);
-		if(DISK_ENABLED)
-			ret += String.format(": %5.2f%% from ram, %5.2f%% from disk", cacheHitRam*100.0/cacheAccess, cacheHitDisk*100.0/cacheAccess);
 
-		ret += "\n    " 
+		ret += "\n    "
 			+ "time mgmt:"
 			+ " pre: " + timePrepare/10000/100.0 + "ms"
 			+ " split: " + timeSplit/10000/100.0 + "ms"
@@ -312,21 +218,18 @@ public class RunnerCaching {
 		ret += "\n    " ;
 		ret += "time: " + timeTot/10000/100.0 + "ms";
 		ret += "; ram: " + (timeTot - timeMiss - timeDisk)/10000/100.0 + "ms";
-		if(DISK_ENABLED) ret += ", disk: " + timeDisk/10000/100.0 + "ms";
 		ret += ", miss: " + timeMiss/10000/100.0 + "ms";;
 
-		ret += "\n    "; 
+		ret += "\n    ";
 		ret += "jobs: " + cacheAccess;
 		ret += " (" + 100*(cacheAccess+1)/(origJobs+1)/100.0 + "x)";
 		ret += "; ram: "  + (cacheHitRam);
-		if(DISK_ENABLED) ret += ", disk: " + (cacheHitDisk);
 		ret += ", miss: " + (cacheMiss);
 		ret += " (" + 100*(cacheMiss+1)/(origJobs+1)/100.0 + "x)";
 
 		ret += "\n    ";
 		ret += "per job: " + timeTot/(cacheAccess + 1)/10000/100.0 + "ms";
 		ret += "; ram: "  + (timeTot - timeMiss - timeDisk)/(cacheHitRam+1)/10000/100.0 + "ms";
-		if(DISK_ENABLED) ret += ", disk: " + timeDisk/(cacheHitDisk+1)/10000/100.0 + "ms";
 		ret += ", miss: " + timeMiss/(cacheMiss+1)/10000/100.0 + "ms";
 
 
@@ -357,7 +260,7 @@ public class RunnerCaching {
 		public TestWithData(Test test, TrackerDatum[] data) {
 			this.test = test;
 			this.data = data;
-			this.hashCode = 31*(31 + Arrays.hashCode(data)) + ((test == null) ? 0 : test.hashCode());
+			hashCode = 31*(31 + Arrays.hashCode(data)) + ((test == null) ? 0 : test.hashCode());
 		}
 
 		@Override
@@ -377,19 +280,19 @@ public class RunnerCaching {
 			} else if(!test.equals(other.test)) return false;
 			return true;
 		}
-		
-		
-		
+
+
+
 	}
-	
+
 	private class CachingFuture implements Future<ElementManager<String, CoverageInformation>> {
 
 		private final ElementManager<String, CoverageInformation> coverage;
 		private final Map<TestWithData, Future<ElementManager<String, CoverageInformation>>> waiting;
 
 		public CachingFuture() {
-			this.coverage = new ElementManager<String, CoverageInformation>();
-			this.waiting = new LinkedHashMap<TestWithData, Future<ElementManager<String,CoverageInformation>>>();
+			coverage = new ElementManager<String, CoverageInformation>();
+			waiting = new LinkedHashMap<TestWithData, Future<ElementManager<String,CoverageInformation>>>();
 		}
 
 		public void add(TestWithData test, Future<ElementManager<String, CoverageInformation>> future) {
@@ -427,7 +330,6 @@ public class RunnerCaching {
 						if(!cache.containsKey(test)) {
 							evaluating.remove(test);
 							cache.put(test, cov);
-							if(DISK_ENABLED) writeToDisk(test, cov);
 						}
 					}
 				}
@@ -476,7 +378,7 @@ public class RunnerCaching {
 			public void updateScore() {
 				score >>= 1;
 			}
-			
+
 			public boolean isExpired() {
 				return score == 0;
 			}
@@ -599,43 +501,7 @@ public class RunnerCaching {
 		@Override
 		public Collection<V> values() {
 			throw new NullPointerException("Operation not supported");
-			//			return map.values();
-		}
-	}
-
-	public static void main(String[] args) {
-		for(String f : args) {
-			write(new File(f));
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private static void write(File file) {
-		if(file.isDirectory()) {
-			for(File file2 : file.listFiles()) write(file2);
-		} else {
-			try {
-				ObjectInput in = new ObjectInputStream(new GZIPInputStream(new FileInputStream(file)));
-				Test t = (Test) in.readObject();
-				ElementManager<String, CoverageInformation> covs = (ElementManager<String, CoverageInformation>) in.readObject();
-				in.close();
-
-				PrintWriter out = new PrintWriter(file.getAbsolutePath() + ".txt");
-				out.println("---  test  ---");
-				out.println(t.toString());
-				out.println("---coverage---");
-				for(CoverageInformation cov : covs) {
-					out.println(cov.getName() + ": " + cov.getQuality());
-					out.println("-");
-					out.println(cov);
-					out.println("---");
-				}
-				out.close();
-			} catch(IOException e) {
-				System.err.println("Cannot write test " + file + ": " + e);
-			} catch(ClassNotFoundException e) {
-				System.err.println("Cannot write test " + file + ": " + e);
-			}
+			// return map.values();
 		}
 	}
 }

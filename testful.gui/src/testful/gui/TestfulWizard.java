@@ -11,7 +11,8 @@ import org.eclipse.jface.wizard.IWizardPage;
 import org.eclipse.jface.wizard.Wizard;
 import org.eclipse.swt.widgets.Composite;
 
-import testful.Configuration;
+import testful.ConfigCut;
+import testful.TestfulException;
 import testful.gui.TestfulImage.IMAGE;
 import testful.model.xml.Parser;
 import testful.model.xml.XmlClass;
@@ -31,7 +32,7 @@ public class TestfulWizard extends Wizard {
 		setDefaultPageImageDescriptor(ImageDescriptor.createFromURL(FileLocator.find(Activator.getDefault().getBundle(), new Path(IMAGE.TESTFUL_WIZARD_BIG.path()),null)));
 	}
 
-	public TestfulWizard(Configuration config) {
+	public TestfulWizard(ConfigCut config) {
 		this();
 		setWindowTitle("Testful - " + config.getCut() + " - Wizard");
 		try {
@@ -48,7 +49,8 @@ public class TestfulWizard extends Wizard {
 		} catch (JAXBException e) {
 			e.printStackTrace();
 			MessageDialog.openError(getShell(), "Testful - Error", "Impossible to open Xml Model!\n" + e.getMessage());
-			return;
+		} catch (TestfulException e) {
+			MessageDialog.openError(getShell(), "Testful - Error", e.getMessage());
 		}
 	}
 

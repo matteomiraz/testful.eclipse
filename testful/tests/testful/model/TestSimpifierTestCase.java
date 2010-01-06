@@ -3,9 +3,8 @@ package testful.model;
 import java.util.ArrayList;
 import java.util.List;
 
-import testful.model.TestfulProblem.TestfulConfig;
-import testful.runner.IRunner;
-import testful.runner.RunnerPool;
+import testful.ConfigCut;
+import testful.GenericTestCase;
 import testful.runner.TestfulClassLoader;
 
 /**
@@ -16,9 +15,7 @@ public class TestSimpifierTestCase extends AutoTestCase {
 
 	@Override
 	protected List<Test> perform(Test test) throws Exception {
-		IRunner exec = RunnerPool.createExecutor(null, false);
-
-		TestSimplifier s = new TestSimplifier(exec, getFinder());
+		TestSimplifier s = new TestSimplifier(getFinder());
 
 		List<Test> res = new ArrayList<Test>(1);
 		res.add(s.analyze(test));
@@ -26,7 +23,7 @@ public class TestSimpifierTestCase extends AutoTestCase {
 	}
 
 	public void testSimple1() throws Exception {
-		TestfulConfig config = new TestfulConfig("testCut");
+		ConfigCut config = new ConfigCut(GenericTestCase.config);
 		config.setCut("dummy.Simple");
 		TestCluster cluster = new TestCluster(new TestfulClassLoader(getFinder()), config);
 		ReferenceFactory refFactory = new ReferenceFactory(cluster, 4, 4);

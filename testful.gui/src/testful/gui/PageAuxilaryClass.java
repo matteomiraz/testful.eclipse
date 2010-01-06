@@ -18,7 +18,7 @@ import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
 import org.eclipse.swt.widgets.Listener;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.gui.operator.LoadXmlModel;
 import testful.gui.operator.Result;
 import testful.gui.operator.SaveXmlModel;
@@ -27,12 +27,12 @@ import testful.model.xml.XmlClass;
 
 public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage {
 
-	
-	private Configuration config;
+
+	private ConfigCut config;
 	private XmlClass xmlClass;
-		
+
 	private ArrayList<XmlClass> auxilaryClasses;
-	
+
 	private Control parent;
 	final StackLayout layout = new StackLayout();
 	private Composite cmpMain;
@@ -45,8 +45,8 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 	private GridLayout subGrid;
 	private GridData gdtHV;
 	private PageCheckerClasses pccChecker;
-	
-	public PageAuxilaryClass(Configuration config, XmlClass xmlClass) {
+
+	public PageAuxilaryClass(ConfigCut config, XmlClass xmlClass) {
 		super("AuxilaryClasses");
 		setTitle("Auxilary classes");
 		setDescription("Can modify auxilary classes models destrcriptions");
@@ -54,40 +54,40 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 		this.config = config;
 		this.xmlClass = xmlClass;
 	}
-	
+
 	private void initGUI() {
 		gdtHV = new GridData();
 		gdtHV.horizontalAlignment = GridData.FILL;
 		gdtHV.verticalAlignment = GridData.FILL;
 		gdtHV.grabExcessHorizontalSpace = true;
 		gdtHV.grabExcessVerticalSpace = true;
-		
+
 		subGrid = new GridLayout(1, true);
 		subGrid.marginWidth = 0;
 		subGrid.marginHeight = 0;
 		subGrid.horizontalSpacing = 0;
 		subGrid.verticalSpacing = 0;
 	}
-	
+
 	@Override
 	public void createControl(final Composite parent) {
 		this.parent = parent;
-		
+
 		initGUI();
-		
+
 		cmpMain = new Composite(parent, SWT.NONE);
 		cmpMain.setLayoutData(gdtHV);
 		cmpMain.setLayout(layout);
-		 
+
 		cmpList = new Composite(cmpMain, SWT.NONE);
 		cmpList.setLayout(new GridLayout(1, true));
 		cmpList.setLayoutData(gdtHV);
 		new Label(cmpList, SWT.NONE).setText("Auxilary classes:");
-		
+
 		Composite cmpListItems = new Composite(cmpList, SWT.NONE);
 		cmpListItems.setLayout(new GridLayout(2, true));
 		cmpListItems.setLayoutData(gdtHV);
-		
+
 		lstAux = new List(cmpListItems, SWT.SINGLE);
 		lstAux.setLayoutData(gdtHV);
 		lstAux.addSelectionListener(new SelectionListener() {
@@ -98,11 +98,11 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 			@Override
 			public void widgetDefaultSelected(SelectionEvent e) {}
 		});
-		
+
 		Composite cmpRight = new Composite(cmpListItems, SWT.NONE);
 		cmpRight.setLayout(new GridLayout(1, true));
 		cmpRight.setLayoutData(gdtHV);
-		
+
 		btnModify = new Button(cmpRight, SWT.PUSH);
 		btnModify.setText("Edit class model >>");
 		btnModify.setEnabled(false);
@@ -117,7 +117,7 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 					cmpXmlEditor  = new Composite(cmpModelEditor, SWT.NONE);
 					cmpXmlEditor.setLayout(subGrid);
 					cmpXmlEditor.setLayoutData(gdtHV);
-					
+
 					PageXMLModel xmc = new PageXMLModel(config, auxilaryClasses.get(lstAux.getSelectionIndex()));
 					xmc.createControl(cmpXmlEditor, true);
 					xmc.start();
@@ -134,19 +134,19 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 
 		pccChecker = new PageCheckerClasses(config);
 		pccChecker.createControl(cmpRight);
-				
+
 		cmpModel = new Composite(cmpMain, SWT.NONE);
 		cmpModel.setLayout(subGrid);
 		cmpModel.setLayoutData(gdtHV);
-		
+
 		cmpModelEditor = new Composite(cmpModel, SWT.NONE);
 		cmpModelEditor.setLayout(new GridLayout(1, true));
 		cmpModelEditor.setLayoutData(gdtHV);
-			
+
 		cmpXmlEditor  = new Composite(cmpModelEditor, SWT.NONE);
 		cmpXmlEditor.setLayout(subGrid);
 		cmpXmlEditor.setLayoutData(gdtHV);
-		
+
 		Button btnFinish = new Button(cmpModel, SWT.PUSH);
 		btnFinish.setText("<< Finish");
 		GridData gdtRight = new GridData();
@@ -161,7 +161,7 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 		});
 		setControl(cmpMain);
 	}
-	
+
 	@Override
 	public Control getParentControl() {
 		return parent;
@@ -179,7 +179,7 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 				tmpRes = saveXmlModel.Result();
 				result = new Result(result.isSuccess&&tmpRes.isSuccess, result.message + "\n" + tmpRes.message);
 			}
-			
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			result = new Result(false, "Errors occurred while saving");
@@ -191,12 +191,12 @@ public class PageAuxilaryClass extends WizardPage implements ITestfulWizardPage 
 	public void start() {
 		auxilaryClasses = new ArrayList<XmlClass>();
 		lstAux.removeAll();
-		
+
 		boolean duplcateValue;
 		Result res;
-		
+
 		LoadXmlModel loadXmlModel;
-		
+
 		for (XmlAux aux : xmlClass.getAux()) {
 			if (!aux.getName().equals(xmlClass.getName())) {
 				duplcateValue = false;

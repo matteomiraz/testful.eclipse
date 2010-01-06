@@ -1,6 +1,6 @@
 package testful.gui;
 
-import java.util.ArrayList;
+import java.io.File;
 
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
@@ -11,48 +11,41 @@ import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 
-import testful.Configuration;
-import testful.gui.ControlInteger.TYPE;
+import testful.ConfigCut;
+import testful.TestfulException;
+import testful.IConfigProject.LogLevel;
+import testful.evolutionary.ConfigEvolutionary;
+import testful.evolutionary.jMetal.FitnessInheritance;
+import testful.gui.control.ControlCombo;
+import testful.gui.control.ControlInteger;
+import testful.gui.control.ControlLabel;
+import testful.gui.control.ControlText;
+import testful.gui.control.ITestfulControl;
 import testful.gui.operator.Result;
 import testful.gui.operator.TestGenerator;
 
 public class PageTestful extends WizardPage implements ITestfulWizardPage {
 
-	private final Configuration config;
+	private final ConfigEvolutionary config;
 	private ScrolledComposite scrMain;
 	private Composite parent;
 	private GridData gdtHV;
-	private Object[][] options = {
-			//Name, Label, Default value, Description
-			{"-cutSize",	"Cut size", new Integer(4), "Number of places in the repository for the CUT"},
-			{"-auxSize",	"Aux size",	new Integer(4), "Number of places in the repository for auxiliary classes"},
-			{"-testSize", "Test size", new Integer(10000), "Maximum test length (n° of invocations)"},
-			{"-reload", "Reload", new Boolean(false), "Reload classes before each run (reinitialize static fields)"},
-			{"-time", "Time", new Integer(600), "The maximum execution time (in seconds)"},
-			{"-disableLocalSearch", "Disable local search", new Boolean(false), "Disable the local search"},
-			{"-disableLength", "Disable length", new Boolean(false), "Removes the length of test from the multi-objective fitness"},
-			{"-disableBehavioral", "Disable behavioral", new Boolean(false), "Removes the behavioral coverage from the multi-objective fitness"},
-			{"-enableBug", "Enable bug", new Boolean(false), "Inserts the number of bug found in the multi-objective fitness"},
-			{"-disableDefUse", "Disable def-use", new Boolean(false), "Removes the def-use pairs coverage from the multi-objective fitness\n(shortcut for -disableDefUseCode and -disableDefUseContract)"},
-			{"-disableDefUseCode", "Disable def-use code", new Boolean(false), "Removes the def-use pairs coverage on the code from the multi-objective fitness"},
-			{"-disableDefUseContract", "Disable def-use contract", new Boolean(false), "Removes the def-use pairs coverage on contracts from the multi-objective fitness"},
-			{"-disableBranch", "Disable branch", new Boolean(false), "Removes the branch coverage from the multi-objective fitness\n(shortcut for -disableBranchCode and -disableBranchContract)"},
-			{"-disableBranchCode", "Disable branch code", new Boolean(false), "Removes the branch coverage on the code from the multi-objective fitness"},
-			{"-disableBranchContract", "Disable branch contract", new Boolean(false), "Removes the branch coverage on contracts from the multi-objective fitness"},
-			{"-disableBasicBlock", "Disable basic block", new Boolean(false), "Removes the basic block coverage from the multi-objective fitness\n(shortcut for -disableBranchCode and -disableBranchContract)"},
-			{"-disableBasicBlockCode", "Disable basic block code", new Boolean(false), "Removes the basic block coverage on the code from the multi-objective fitness"},
-			{"-disableBasicBlockContract", "Disable basic block contract", new Boolean(false), "Removes the basic block coverage on contracts from the multi-objective fitness"},
-			{"-remote", "Remote", new String(""), "Use the specified remote evaluator"},
-			{"-noLocal", "No local", new Boolean(false), "Do not use local evaluators"},
-			{"-enableCache", "Enable cache", new Boolean(false), "Enable evaluation cache. Notice that it can degrade performances"}
-	};
-	private ArrayList <ITestfulControl> controls;
 
-	public PageTestful(Configuration config) {
+	public PageTestful(ConfigCut cut) throws TestfulException {
 		super("Testful");
 		setTitle("Test generator");
 		setDescription("Set parameters to generate tests cases");
-		this.config = config;
+		config = new ConfigEvolutionary();
+		config.setCut(cut.getCut());
+		config.setDirBase(cut.getDirBase());
+		config.setDirSource(cut.getDirSource());
+		config.setDirCompiled(cut.getDirCompiled());
+		config.setDirContracts(cut.getDirContracts());
+		config.setDirInstrumented(cut.getDirInstrumented());
+
+		config.setQuiet(true);
+		config.setLog(null);
+		config.setLogLevel(LogLevel.WARNING);
 	}
 
 	@Override
@@ -71,29 +64,197 @@ public class PageTestful extends WizardPage implements ITestfulWizardPage {
 		Composite co = new Composite(scrMain, SWT.NONE);
 		co.setLayout(new GridLayout());
 		Composite cmpGrid = new Composite(co, SWT.NONE);
-		cmpGrid.setLayout(new GridLayout(3, false));
+		cmpGrid.setLayout(new GridLayout(2, false));
 		cmpGrid.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_GRAY));
 
-		try {
-			Object value;
-			for (int i = 0; i < options.length; i++) {
-				ITestfulControl c = null;
-				value = options[i][2];
-
-				new ControlLabel(cmpGrid, (String)options[i][1] + ":");
-
-				if (value instanceof Integer) c = new ControlInteger(cmpGrid, (Integer)value, TYPE.POSITIVE);
-				else if (value instanceof Boolean) c = new ControlBoolean(cmpGrid, (Boolean)value);
-				else if (value instanceof String) c = new ControlText(cmpGrid, (String)value);
-				else throw new Exception("Not valid data.");
-
-				controls.add(c);
-				new ControlInfo(cmpGrid, (String)options[i][0], (String)options[i][3]);
-			}
-
-		} catch (Exception e) {
-			e.printStackTrace();
+		{
+			new ControlLabel(cmpGrid, "Time:", "The maximum execution time (in seconds)");
+			new ControlInteger(cmpGrid, null, config.getTime(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setTime(newValue);
+				}
+			}));
 		}
+
+		{
+			new ControlLabel(cmpGrid, "Test Directory:", "The directory in which generated tests will be put");
+			new ControlText(cmpGrid, "genTests", ControlText.getRequired(new ITestfulControl<String>() {
+				@Override
+				public void update(String newValue) {
+					config.setDirGeneratedTests(new File(newValue));
+				}
+			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Maximum test length:", "Maximum length of each test (n° of invocations)");
+			new ControlInteger(cmpGrid, null, config.getMaxTestLen(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setMaxTestLen(newValue);
+				}
+			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Cut variables:", "Number of variables for the CUT");
+			new ControlInteger(cmpGrid, config.getNumVarCut(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setNumVarCut(newValue);
+				}
+			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Aux variables:", "Number of variables for auxiliary classes");
+			new ControlInteger(cmpGrid, config.getNumVar(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setNumVar(newValue);
+				}
+			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Use smart ancestors:", "Starts the evolution from a better population.");
+			ControlCombo.getBooleanCombo(cmpGrid, true, new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setSmartInitialPopulation(newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Population:", "The size of the population (# of individuals)");
+			new ControlInteger(cmpGrid, config.getPopSize(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setPopSize(newValue);
+				}
+			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Fitness Inheritance:", "Speed up the evaluation by inheriting coverage");
+			ControlCombo.getEnumCombo(cmpGrid, FitnessInheritance.class, config.getFitnessInheritance(), new ITestfulControl<FitnessInheritance>() {
+				@Override
+				public void update(FitnessInheritance newValue) throws Exception {
+					config.setFitnessInheritance(newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Local search period:", "Period of the local search (0 to disable local search)");
+			new ControlInteger(cmpGrid, config.getLocalSearchPeriod(), ControlInteger.getNotNegative(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) {
+					config.setLocalSearchPeriod(newValue);
+				}
+			}));
+		}
+
+		{
+			// TODO: create code and contracts options
+			new ControlLabel(cmpGrid, "Consider Basic Block coverage:", "Use the basic block coverage to drive the generation process");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isBbd(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setDisableBasicBlock(!newValue);
+				}
+			});
+		}
+
+		{
+			// TODO: create code and contracts options
+			new ControlLabel(cmpGrid, "Consider Branch coverage:", "Use the branch coverage to drive the generation process");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isBrd(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setDisableBranch(!newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Consider test compactness:", "Use test compactness to drive the evolutionary process");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isLength(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setDisableLength(!newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Cache evaluations:", "Enable evaluation cache. It may speed up the evaluation, but it requires more memory. Note that often it actually degrades performances");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isCache(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setCache(newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Reload classes:", "Reload classes before each evaluation (reinitialize static fields, slow down the evaluation process)");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isReload(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.setReload(newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Logging level:", "Specify the logging level");
+			ControlCombo.getEnumCombo(cmpGrid, LogLevel.class, LogLevel.WARNING, new ITestfulControl<LogLevel>() {
+				@Override
+				public void update(LogLevel newValue) throws Exception {
+					config.setLogLevel(newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Log directory:", "If set, logs in the specified directory");
+			new ControlText(cmpGrid, null, new ITestfulControl<String>() {
+				@Override
+				public void update(String newValue) {
+					if(newValue == null || newValue.isEmpty())
+						config.setLog(null);
+					else
+						config.setLog(new File(newValue));
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Local evaluation:", "Do not evaluate test locally (you must specify a remote evaluator)");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isLocalEvaluation(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) throws Exception {
+					config.disableLocalEvaluation(!newValue);
+				}
+			});
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Remote:", "Use a remote test evaluator");
+			new ControlText(cmpGrid, null, new ITestfulControl<String>() {
+				@Override
+				public void update(String newValue) {
+					if(newValue == null || newValue.isEmpty())
+						config.setRemote(null);
+					else
+						config.setRemote(newValue);
+				}
+			});
+		}
+
 
 		scrMain.setContent(co);
 		scrMain.setExpandHorizontal(true);
@@ -109,52 +270,17 @@ public class PageTestful extends WizardPage implements ITestfulWizardPage {
 		gdtHV.verticalAlignment = GridData.FILL;
 		gdtHV.grabExcessHorizontalSpace = true;
 		gdtHV.grabExcessVerticalSpace = true;
-		controls = new ArrayList<ITestfulControl>();
 	}
 
 	@Override
 	public Result finish() {
-		Result r;
 		try {
-			String value;
-			boolean toAdd;
-			ArrayList <String> alArg = new ArrayList<String>();
-			int totalTime = 600;
-			for (int i=0; i<controls.size(); i++) {
-				value = controls.get(i).getValue();
-				if (controls.get(i) instanceof ControlBoolean) {
-					toAdd = value.toLowerCase().equals("true");
-					value = "";
-				} else toAdd = !(controls.get(i) instanceof ControlText && value.isEmpty());
-				if (toAdd) {
-					alArg.add((String)options[i][0]);
-					alArg.add(value);
-					if (((String)options[i][0]).equals("-time")) totalTime = Integer.parseInt(value);
-				}
-			}
-
-			String[] args = new String[alArg.size()+4];
-			args[0] = "-baseDir";
-			args[1] = config.getDirBase();
-			args[2] = "-cut";
-			args[3] = config.getCut();
-
-
-			for (int i = 4; i < args.length; i++) {
-				args[i] = alArg.get(i-4);
-			}
-
-			TestGenerator test = new TestGenerator("TestFul", config, args);
-			test.setTime(totalTime);
+			TestGenerator test = new TestGenerator(config);
 			test.schedule();
-			r = test.Result();
-
 		} catch (Exception e) {
 			e.printStackTrace();
-			r = new Result(false);
 		}
-		return r;
-
+		return null;
 	}
 
 	@Override

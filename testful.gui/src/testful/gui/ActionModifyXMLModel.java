@@ -10,7 +10,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.gui.operator.LoadXmlModel;
 import testful.gui.operator.Result;
 import testful.model.xml.XmlClass;
@@ -36,12 +36,13 @@ public class ActionModifyXMLModel implements IObjectActionDelegate {
 	public void run(IAction action) {
 		if (!selection.isEmpty()) {
 			try {
+				ConfigCut config = new ConfigCut();
+
 				String path = Util.getISelectionPath(((IStructuredSelection)selection).getFirstElement());
 				String baseDir = Util.WORKSPACEDIR + Util.getSourceFolderPath(path);
-				String cut = Util.getClassName(Util.getClassPath(path));
+				config.setDirBase(new File(baseDir));
 
-				Configuration config = new Configuration(baseDir);
-				config.setCut(cut);
+				config.setCut(Util.getClassName(Util.getClassPath(path)));
 
 				LoadXmlModel loadXmlModel = new LoadXmlModel(config);
 				loadXmlModel.run();

@@ -13,7 +13,7 @@ import org.eclipse.swt.widgets.Shell;
 import org.eclipse.ui.IObjectActionDelegate;
 import org.eclipse.ui.IWorkbenchPart;
 
-import testful.Configuration;
+import testful.ConfigCut;
 import testful.gui.operator.CreateXmlModel;
 import testful.gui.operator.Result;
 
@@ -54,7 +54,8 @@ public class ActionStartWizard implements IObjectActionDelegate {
 					throw new Exception("Unable to create the Testful XML model.\n" + result.message);
 			}
 			//new TestfulWizardOld(shell.getDisplay(), Util.WORKSPACEDIR + subDir, cut);
-			Configuration config = new Configuration(Util.WORKSPACEDIR + subDir);
+			ConfigCut config = new ConfigCut();
+			config.setDirBase(new File(Util.WORKSPACEDIR + subDir));
 			config.setCut(cut);
 			TestfulWizard wizard = new TestfulWizard(config);
 

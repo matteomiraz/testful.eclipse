@@ -14,13 +14,13 @@ import org.eclipse.core.runtime.Path;
 public class Instrument {
 	public static boolean instrument(String cut, String baseDir, StringBuilder msg) throws IOException, InterruptedException {
 		StringBuilder cmd = new StringBuilder();
-		
+
 		cmd.append("java");
-		cmd.append(" -cp ").append(getPluginResource("/instrumenter.jar")).append(" testful.coverage.Launcher"); 
+		cmd.append(" -cp ").append(getPluginResource("/instrumenter.jar")).append(" testful.coverage.Launcher");
 		cmd.append(" -cut ").append(cut);
-		if(baseDir != null) 
-			cmd.append(" -baseDir ").append(baseDir);
-		
+		if(baseDir != null)
+			cmd.append(" -dir ").append(baseDir);
+
 		Process p = Runtime.getRuntime().exec(cmd.toString());
 		p.waitFor();
 
@@ -28,10 +28,10 @@ public class Instrument {
 			append(msg, p.getInputStream());
 			append(msg, p.getErrorStream());
 		}
-		
+
 		return p.exitValue() == 0;
 	}
-	
+
 	private static File getPluginResource(String path) throws IOException {
 		try {
 			URL eclipseURL = FileLocator.find(Activator.getDefault().getBundle(), new Path(path), null);
