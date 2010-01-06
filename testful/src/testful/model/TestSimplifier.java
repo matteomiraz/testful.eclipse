@@ -9,6 +9,7 @@ import testful.coverage.TrackerDatum;
 import testful.runner.ClassFinder;
 import testful.runner.Context;
 import testful.runner.IRunner;
+import testful.runner.RunnerPool;
 
 /**
  * Simplify a test, by
@@ -56,8 +57,8 @@ public class TestSimplifier {
 		this.data = data;
 	}
 
-	public TestSimplifier(IRunner executor, ClassFinder finder, TrackerDatum ... data) {
-		this.executor = executor;
+	public TestSimplifier(ClassFinder finder, TrackerDatum ... data) {
+		executor = RunnerPool.getRunnerPool();
 		this.finder = finder;
 		this.data = data;
 	}
@@ -114,7 +115,7 @@ public class TestSimplifier {
 					} else if(op instanceof Invoke) {
 						Reference target = ((Invoke) op).getTarget();
 						if(target != null) ops.add(new AssignConstant(target, null));
-					} else System.err.println("Unexpected operation: " + op.getClass().getCanonicalName());
+					} else Logger.getLogger("testful.model").warning("Unexpected operation: " + op.getClass().getCanonicalName());
 					break;
 				case SUCCESSFUL:
 					manageOperation(ops, op);

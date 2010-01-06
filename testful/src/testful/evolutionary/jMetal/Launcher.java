@@ -1,13 +1,13 @@
 package testful.evolutionary.jMetal;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
-import java.util.Map;
-import java.util.Map.Entry;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import jmetal.base.Solution;
@@ -17,199 +17,87 @@ import jmetal.base.operator.localSearch.LocalSearch;
 import jmetal.base.operator.selection.BinaryTournament2;
 import jmetal.base.operator.selection.Selection;
 import jmetal.util.JMException;
-
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-
-import testful.IUpdate;
+import testful.TestFul;
 import testful.TestfulException;
 import testful.IUpdate.Callback;
+import testful.coverage.TrackerDatum;
+import testful.coverage.whiteBox.AnalysisWhiteBox;
+import testful.evolutionary.ConfigEvolutionary;
+import testful.evolutionary.IConfigEvolutionary;
 import testful.model.Operation;
 import testful.model.OptimalTestCreator;
 import testful.model.Test;
 import testful.model.TestCoverage;
 import testful.model.TestSplitter;
-import testful.model.TestfulProblem;
+import testful.model.TestSuite;
+import testful.random.RandomTest;
+import testful.random.RandomTestSplit;
 import testful.regression.JUnitTestGenerator;
-import testful.runner.IRunner;
 import testful.runner.RunnerPool;
-import testful.utils.TestfulLogger;
+import testful.utils.Utils;
 
 public class Launcher {
+	private static Logger logger = Logger.getLogger("testful.evolutionary");
 
-	@Option(required = true, name = "-cut", usage = "The class to test", metaVar = "full.qualified.ClassName")
-	private String cut;
+	public static void main(String[] args) throws TestfulException, InterruptedException {
+		ConfigEvolutionary config = new ConfigEvolutionary();
+		TestFul.parseCommandLine(config, args, Launcher.class, "Evolutionary test generator");
 
-	@Option(required = false, name = "-cutSize", usage = "Number of places in the repository for the CUT")
-	private int cutSize = 4;
+		if(!config.isQuiet())
+			testful.TestFul.printHeader("Evolutionary test generator");
 
-	@Option(required = false, name = "-auxSize", usage = "Number of places in the repository for auxiliary classes")
-	private int auxSize = 4;
+		TestFul.setupLogging(config);
 
-	@Option(required = false, name = "-testSize", usage = "Maximum test length (n° of invocations)")
-	private int maxSize = 10000;
+		logger.config(TestFul.getProperties(config));
 
-	@Option(required = false, name = "-reload", usage = "Reload classes before each run (reinitialize static fields)")
-	private boolean reload = false;
-
-	@Option(required = false, name = "-time", usage = "The maximum execution time (in seconds)")
-	private int time = 600;
-
-	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)")
-	private int localSearchPeriod = 20;
-
-	@Option(required = false, name = "-disableLength", usage = "Removes the length of test from the multi-objective fitness")
-	private boolean disableLength = false;
-
-	@Option(required = false, name = "-enableBug", usage = "Inserts the number of bug found in the multi-objective fitness")
-	private boolean enableBug = false;
-
-	@Option(required = false, name = "-disableBranch", usage = "Removes the branch coverage from the multi-objective fitness (shortcut for -disableBranchCode and -disableBranchContract)")
-	private boolean disableBranch = false;
-
-	@Option(required = false, name = "-disableBranchCode", usage = "Removes the branch coverage on the code from the multi-objective fitness")
-	private boolean disableBranchCode = false;
-
-	@Option(required = false, name = "-disableBranchContract", usage = "Removes the branch coverage on contracts from the multi-objective fitness")
-	private boolean disableBranchContract = false;
-
-	@Option(required = false, name = "-disableBasicBlock", usage = "Removes the basic block coverage from the multi-objective fitness (shortcut for -disableBranchCode and -disableBranchContract)")
-	private boolean disableBasicBlock = false;
-
-	@Option(required = false, name = "-disableBasicBlockCode", usage = "Removes the basic block coverage on the code from the multi-objective fitness")
-	private boolean disableBasicBlockCode = false;
-
-	@Option(required = false, name = "-disableBasicBlockContract", usage = "Removes the basic block coverage on contracts from the multi-objective fitness")
-	private boolean disableBasicBlockContract = false;
-
-	@Option(required = false, name = "-disableFitnessInheritance", usage = "Disable fitness inheritance, i.e., evaluate all individuals in each population")
-	private boolean disableFitnessInheritance = false;
-
-	@Option(required = false, name = "-fitnessInheritanceUniform", usage = "Use an uniform fitness inheritance")
-	private boolean fitnessInheritanceUniform = false;
-
-	@Option(required = false, name = "-remote", usage = "Use the specified remote evaluator")
-	private String remote;
-
-	@Option(required = false, name = "-noLocal", usage = "Do not use local evaluators")
-	private boolean noLocal;
-
-	@Option(required = false, name = "-enableCache", usage = "Enable evaluation cache. Notice that it can degrade performances")
-	private boolean enableCache;
-
-	@Option(required = false, name = "-baseDir", usage = "Specify the CUT's base directory")
-	private String baseDir;
-
-	@Option(required = false, name = "-popSize", usage = "The size of the population (# of individuals)")
-	private int popSize = 512;
-
-	private IRunner executor = null;
-
-	public IRunner getExecutor() {
-		if(executor == null)
-			synchronized(this) {
-				if(executor == null) {
-					executor = RunnerPool.createExecutor("testful", noLocal);
-					executor.addRemoteWorker(remote);
-				}
-			}
-
-		return executor;
-	}
-
-	public void parseArgs(String[] args) {
-		CmdLineParser parser = new CmdLineParser(this);
-
-		try {
-			// parse the arguments.
-			parser.parseArgument(args);
-
-		} catch(CmdLineException e) {
-			System.err.println(e.getMessage());
-			System.err.println("java " + Launcher.class.getCanonicalName() + " [options...] arguments...");
-			parser.printUsage(System.err);
-			System.err.println();
-
-			// print option sample. This is useful some time
-			System.err.println("   Example: java " + Launcher.class.getCanonicalName() + parser.printExample(org.kohsuke.args4j.ExampleMode.REQUIRED));
-
-			System.exit(1);
-		}
-	}
-
-	public static void main(String[] args) throws TestfulException, SecurityException, IOException, InterruptedException {
-		testful.TestFul.printHeader("Testful-nsgaII");
-		String baseDir = TestfulLogger.singleton.getBaseDir();
-
-		// Logger object and file to store log messages
-		Logger logger_ = jmetal.base.Configuration.logger_;
-		logger_.addHandler(new FileHandler(baseDir + File.separator + "NSGAII_main.log"));
-
-		run(args, new IUpdate.Callback() {
-
-			@Override
-			public void update(long start, long current, long end, Map<String, Float> coverage) {
-
-				StringBuilder sb = new StringBuilder();
-
-				sb.append("Start: ").append(new Date(start)).append(" ").append(((current - start) / 1000) / 60).append(" minutes ").append(((current - start) / 1000) % 60).append(" seconds ago\n");
-				sb.append("Now  : ").append(new Date()).append("\n");
-				sb.append("End  : ").append(new Date(end)).append(" ").append(((end - current) / 1000) / 60).append(" minutes ").append(((end - current) / 1000) % 60).append(" seconds").append("\n");
-
-				if(!coverage.isEmpty()) {
-					sb.append("Coverage:\n");
-					for(Entry<String, Float> cov : coverage.entrySet())
-						sb.append("  ").append(cov.getKey()).append(": ").append(cov.getValue()).append("\n");
-				}
-
-				System.out.println(sb.toString());
-			}
-		});
+		run(config);
 
 		System.exit(0);
 	}
 
-	public static void run(String[] args, Callback callBack) throws TestfulException, InterruptedException {
-		Launcher opt = new Launcher();
-		opt.parseArgs(args);
+	public static void run(IConfigEvolutionary config, Callback ... callBacks) throws TestfulException, InterruptedException {
+		RunnerPool.getRunnerPool().config(config);
 
-		final TestfulProblem.TestfulConfig config;
-		if (opt.baseDir != null) config = new TestfulProblem.TestfulConfig(opt.baseDir);
-		else config = new TestfulProblem.TestfulConfig("cut");
+		if(config.getLog() != null && config.getLogLevel().getLoggingLevel().intValue() > Level.FINE.intValue()) {
+			try {
+				final String logFile = config.getLog().getAbsolutePath() + File.separator + "NSGAII_main.log";
+				jmetal.base.Configuration.logger_.addHandler(new FileHandler(logFile));
 
-		config.setCut(opt.cut);
-		config.cluster.setRepoSize(opt.auxSize);
-		config.cluster.setRepoCutSize(opt.cutSize);
+				logger.info("Logging NSGAII to " + logFile);
+			} catch (IOException e) {
+				logger.warning("Cannot enable logging for NSGAII: " + e.getMessage());
+			}
+		}
 
-		config.fitness.len = !opt.disableLength;
-		config.fitness.bug = opt.enableBug;
-		config.fitness.bbd = !(opt.disableBasicBlock || opt.disableBasicBlockCode);
-		config.fitness.bbn = !(opt.disableBasicBlock || opt.disableBasicBlockContract);
-		config.fitness.brd = !(opt.disableBranch || opt.disableBranchCode);
-		config.fitness.brn = !(opt.disableBranch || opt.disableBranchContract);
 
 		JMProblem problem;
 		try {
-			problem = JMProblem.getProblem(opt.getExecutor(), opt.enableCache, opt.reload, config);
+			problem = new JMProblem(config);
 		} catch (JMException e) {
 			throw new TestfulException(e);
 		}
 
 		NSGAII<Operation> algorithm = new NSGAII<Operation>(problem);
-		algorithm.setPopulationSize(opt.popSize);
-		algorithm.setMaxEvaluations(opt.time * 1000);
-		algorithm.setInherit(!opt.disableFitnessInheritance);
-		algorithm.setInheritUniform(opt.fitnessInheritanceUniform);
+		algorithm.setPopulationSize(config.getPopSize());
+		algorithm.setMaxEvaluations(config.getTime() * 1000);
+		algorithm.setInherit(config.getFitnessInheritance());
+
+		if(config.isSmartInitialPopulation()) {
+			try {
+				problem.addReserve(genSmartPopulation(config, problem));
+			} catch (Exception e) {
+				logger.log(Level.WARNING, "Cannot create the initial population: " + e.getMessage(), e);
+			}
+		}
 
 		// Mutation and Crossover for Real codification
 		OnePointCrossoverVarLen<Operation> crossover = new OnePointCrossoverVarLen<Operation>();
 		crossover.setProbability(0.50);
-		crossover.setMaxLen(opt.maxSize);
+		crossover.setMaxLen(config.getMaxTestLen());
 
 		algorithm.setCrossover(crossover);
 
-		TestfulMutation mutation = new TestfulMutation();
+		TestfulMutation mutation = new TestfulMutation(problem);
 		mutation.setProbSimplify(0.05f);
 		mutation.setProbability(0.01);
 		mutation.setProbRemove(0.75f);
@@ -219,13 +107,14 @@ public class Launcher {
 		Selection<Operation,Solution<Operation>> selection = new BinaryTournament2<Operation>();
 		algorithm.setSelection(selection);
 
-		if(opt.localSearchPeriod > 0) {
-			LocalSearch<Operation> localSearch = new LocalSearchBranch(problem.getProblem());
+		if(config.getLocalSearchPeriod() > 0) {
+			LocalSearch<Operation> localSearch = problem.getLocalSearch();
 			algorithm.setImprovement(localSearch);
-			algorithm.setLocalSearchPeriod(opt.localSearchPeriod);
+			algorithm.setLocalSearchPeriod(config.getLocalSearchPeriod());
 		}
 
-		algorithm.register(callBack);
+		for (Callback callBack : callBacks)
+			algorithm.register(callBack);
 
 		/* Execute the Algorithm */
 		SolutionSet<Operation> population;
@@ -252,10 +141,10 @@ public class Launcher {
 
 		/* write them to disk as JUnit */
 		int i = 0;
-		JUnitTestGenerator gen = new JUnitTestGenerator(config);
-		gen.executeTests();
-		for(Test t : optimal.get())
+		JUnitTestGenerator gen = new JUnitTestGenerator(config, false, config.getDirGeneratedTests(), true);
+		for(Test t : optimal.get()) {
 			gen.read(File.separator + "Ful_" + getClassName(config.getCut()) + "_" + i++, t);
+		}
 
 		gen.writeSuite(getPackageName(config.getCut()), "AllTests_" + getClassName(config.getCut()));
 	}//main
@@ -277,4 +166,26 @@ public class Launcher {
 		String[] parts = className.split("\\.");
 		return parts[parts.length - 1];
 	}
-}
+
+	/**
+	 * This function uses random.Launcher to generate a smarter initial population
+	 * @author Tudor
+	 * @return
+	 * @throws TestfulException
+	 * @throws RemoteException
+	 * @throws ClassNotFoundException
+	 * @throws FileNotFoundException
+	 */
+	private static TestSuite genSmartPopulation(IConfigEvolutionary config, JMProblem problem) throws TestfulException, RemoteException, ClassNotFoundException, FileNotFoundException{
+		logger.info("Generating smart population");
+
+		AnalysisWhiteBox whiteAnalysis = AnalysisWhiteBox.read(config.getDirInstrumented(), config.getCut());
+		TrackerDatum[] data = Utils.readData(whiteAnalysis);
+
+		RandomTest rt = new RandomTestSplit(config.isCache(), null, problem.getFinder() , problem.getCluster(), problem.getRefFactory(), data);
+
+		rt.test(30000);
+
+		return rt.getResults();
+	} //genSmartPopulation
+} // NSGAII_main

@@ -2,19 +2,20 @@ package testful.coverage;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import soot.PackManager;
 import soot.Scene;
 import soot.SootClass;
 import soot.Transform;
 import soot.jimple.toolkits.scalar.NopEliminator;
-import testful.Configuration;
+import testful.ConfigCut;
+import testful.IConfigCut;
+import testful.TestFul;
 import testful.model.TestCluster;
 import testful.runner.ClassFinderCaching;
 import testful.runner.ClassFinderImpl;
@@ -30,11 +31,7 @@ import testful.utils.SootMain;
  */
 public class Launcher {
 
-	@Option(required = true, name = "-cut", usage = "The class to test", metaVar = "full.qualified.ClassName")
-	private String cut;
-
-	@Option(required = false, name = "-baseDir", usage = "Specify the CUT's base directory")
-	private String baseDir;
+	private static final Logger logger = Logger.getLogger("testful.coverage.instrumenter");
 
 	private static final boolean preWriter     = false;
 	private static final boolean instrumenter  = true;
@@ -43,37 +40,38 @@ public class Launcher {
 
 	public static void main(String[] args) {
 
-		Launcher l = new Launcher();
-		l.parseCommands(args);
+		IConfigCut config  = new ConfigCut();
+
+		TestFul.parseCommandLine(config, args, Launcher.class, "Instrumenter");
 
 		try {
-			testful.TestFul.printHeader("Instrumenter");
 
-			Configuration config = new Configuration(l.baseDir);
-			config.setCut(l.cut);
-			
-			String[] SOOT_CONF = new String[] { "-validate", "--keep-line-number", "--xml-attributes", "-f", "c", "-output-dir", config.getDirInstrumented() };
+			if(!config.isQuiet())
+				testful.TestFul.printHeader("Instrumenter");
+
+			testful.TestFul.setupLogging(config);
+
+			String[] SOOT_CONF = new String[] { "-validate", "--keep-line-number", "--xml-attributes", "-f", "c", "-output-dir", config.getDirInstrumented().getAbsolutePath() };
 
 			List<String> sootClassPath = new ArrayList<String>();
-			sootClassPath.add(config.getDirJml());
-			sootClassPath.add(config.getDirVanilla());
+			sootClassPath.add(config.getDirContracts().getAbsolutePath());
+			sootClassPath.add(config.getDirCompiled().getAbsolutePath());
 			sootClassPath.add(System.getProperty("java.class.path"));
 
 			String bootClassPath = System.getProperty("sun.boot.class.path");
 			if(bootClassPath != null) sootClassPath.add(bootClassPath); // vaild for sun and ibm jvm
 			else {
-				System.err.println("Unknown Java Vendor: " + System.getProperty("java.vm.vendor"));
-				System.getProperties().list(System.out);
+				logger.severe("Unknown Java Vendor: " + System.getProperty("java.vm.vendor"));
 				System.exit(1);
 			}
 
-			ClassFinderCaching finder = new ClassFinderCaching(new ClassFinderImpl(new File(config.getDirInstrumented()), new File(config.getDirJml()), new File(config.getDirVanilla())));
+			ClassFinderCaching finder = new ClassFinderCaching(new ClassFinderImpl(config.getDirInstrumented(), config.getDirContracts(), config.getDirCompiled()));
 			TestfulClassLoader tcl = new TestfulClassLoader(finder);
 			TestCluster tc = new TestCluster(tcl, config);
 
 			Collection<String> toInstrument = tc.getClassesToInstrument();
-			System.out.println("Instrumenting: " + toInstrument);
-			
+			logger.info("Instrumenting: " + toInstrument);
+
 			String params[] = new String[SOOT_CONF.length + 2 + toInstrument.size()];
 
 			params[0] = "-cp";
@@ -92,6 +90,8 @@ public class Launcher {
 			for(String s : toInstrument)
 				params[i++] = s;
 
+			logger.config("Launching SOOT with command line parameters:\n" + Arrays.toString(params));
+
 			SootMain.singleton.processCmdLine(params);
 
 			if(instrumenter) {
@@ -101,18 +101,18 @@ public class Launcher {
 					Instrumenter.singleton.preprocess(sClass);
 				}
 			}
-			
+
 			String last = null;
 			if(preWriter) {
 				String newPhase = "jtp.preWriter";
 				PackManager.v().getPack("jtp").add(new Transform(newPhase, JimpleWriter.singleton));
 				last = newPhase;
-				System.out.println("Enabled phase: " + last);
+				logger.fine("Enabled phase: " + last);
 			}
 
 			if(instrumenter) {
 				String newPhase = "jtp.coverageInstrumenter";
-				System.out.println("Enabled phase: " + newPhase);
+				logger.fine("Enabled phase: " + newPhase);
 				if(last == null) PackManager.v().getPack("jtp").add(new Transform(newPhase, Instrumenter.singleton));
 				else PackManager.v().getPack("jtp").insertAfter(new Transform(newPhase, Instrumenter.singleton), last);
 				last = newPhase;
@@ -120,7 +120,7 @@ public class Launcher {
 
 			if(postWriter) {
 				String newPhase = "jtp.postWriter";
-				System.out.println("Enabled phase: " + newPhase);
+				logger.fine("Enabled phase: " + newPhase);
 				if(last == null) PackManager.v().getPack("jtp").add(new Transform(newPhase, ActiveBodyTransformer.v(JimpleWriter.singleton)));
 				else PackManager.v().getPack("jtp").insertAfter(new Transform(newPhase, ActiveBodyTransformer.v(JimpleWriter.singleton)), last);
 				last = newPhase;
@@ -128,45 +128,23 @@ public class Launcher {
 
 			if(nopEliminator) {
 				String newPhase = "jtp.nopEliminator";
-				System.out.println("Enabled phase: " + newPhase);
+				logger.fine("Enabled phase: " + newPhase);
 				if(last == null) PackManager.v().getPack("jtp").add(new Transform(newPhase, ActiveBodyTransformer.v(NopEliminator.v())));
 				else PackManager.v().getPack("jtp").insertAfter(new Transform(newPhase, ActiveBodyTransformer.v(NopEliminator.v())), last);
 				last = newPhase;
 			}
 
-			System.out.println();
-
 			SootMain.singleton.run();
 
 			if(instrumenter)
-				Instrumenter.singleton.done(config.getDirInstrumented(), l.cut);
-			
-			
-			System.out.println("Done");
+				Instrumenter.singleton.done(config.getDirInstrumented(), config.getCut());
+
+
+			logger.info("Done");
 			System.exit(0);
-			
+
 		} catch (Exception e) {
-			System.err.println("Error: " + e.getMessage());
-			e.printStackTrace();
-			System.exit(1);
-		}
-	}
-
-	private void parseCommands(String[] args) {
-		CmdLineParser parser = new CmdLineParser(this);
-
-		try {
-			// parse the arguments.
-			parser.parseArgument(args);
-		} catch(CmdLineException e) {
-			System.err.println(e.getMessage());
-			System.err.println("java " + Launcher.class.getCanonicalName() + " [options...] arguments...");
-			parser.printUsage(System.err);
-			System.err.println();
-
-			// print option sample. This is useful some time
-			System.err.println("   Example: java " + Launcher.class.getCanonicalName() + parser.printExample(org.kohsuke.args4j.ExampleMode.REQUIRED));
-
+			logger.log(Level.SEVERE, "Error: " + e.getMessage(), e);
 			System.exit(1);
 		}
 	}

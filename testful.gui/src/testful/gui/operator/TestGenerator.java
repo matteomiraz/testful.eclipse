@@ -1,59 +1,40 @@
 package testful.gui.operator;
 
-import java.io.File;
-import java.util.Map;
-
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.resources.ResourcesPlugin;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.runtime.Status;
 import org.eclipse.core.runtime.jobs.Job;
-import org.eclipse.swt.widgets.Display;
 
-import testful.Configuration;
 import testful.IUpdate;
+import testful.evolutionary.IConfigEvolutionary;
 import testful.evolutionary.jMetal.Launcher;
-import testful.gui.ShellTestfulResult;
 
 public class TestGenerator extends Job implements ITestfulOperator{
 
-	private int time = IProgressMonitor.UNKNOWN;
-	private Configuration config;
-	private String[] args;
-	private Result result = null;
+	private IConfigEvolutionary config;
 
 	/**
-	 * Creates a new TestGenerator job with the specified name.
-	 * @see Job#Job(String)
-	 * @param name the name of the job.
-	 */
-	public TestGenerator(String name) {
-		super(name);
-	}
-
-	/**
-	 * @param name The name of job
 	 * @param config Configuration associated with the class to test
-	 * @param args The same arguments to pass to Testful.jar
 	 */
-	public TestGenerator(String name, Configuration config, String[] args) {
-		this(name);
-		setConfig(config);
-		setArgs(args);
+	public TestGenerator(IConfigEvolutionary config) {
+		super("TestFul");
+		this.config = config;
 	}
 
 	@Override
 	protected IStatus run(final IProgressMonitor monitor) {
-		String logFile = config.getDirGeneratedTests() + File.separator + config.getCut() + System.currentTimeMillis() + ".log";
-
 		try {
-			monitor.beginTask("Generating test cases: ", time*1000);
+			monitor.beginTask("Generating test cases: ", config.getTime()*1000);
 
-			Launcher.run(args, new IUpdate.Callback() {
+			Launcher.run(config, new IUpdate.Callback() {
 
 				private long lastUpdate = -1;
 
 				@Override
-				public void update(long start, long current, long end, Map<String, Float> coverage) {
+				public void update(long start, long current, long end) {
 					if(lastUpdate < 0) lastUpdate = start;
 
 					if(current > end) {
@@ -69,69 +50,35 @@ public class TestGenerator extends Job implements ITestfulOperator{
 								+ (r % 60) + " seconds remaining");
 					}
 				}
-
 			});
-			result = new Result(true, (Object)logFile);
+
+			try {
+				ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, monitor);
+			} catch (CoreException e) {
+				e.printStackTrace();
+			}
+
+			// TODO: MessageDialog.openInformation(shell, "Testful", "Tests generated correctly");
+
 		} catch (Exception e) {
-			result =new Result(false, e.getMessage());
+			e.printStackTrace();
+			// TODO: MessageDialog.openError(shell, "Testful", e.getMessage());
 		}
 
-
-		if (result==null) result = new Result(false, (Object)logFile);
 		monitor.done();
-		new OpenShellResult(result).start();
-		return Status.OK_STATUS;
-	}
 
-	/**
-	 * @param config Configuration associated with the class to test
-	 */
-	public void setConfig(Configuration config) {
-		this.config = config;
+		return Status.OK_STATUS;
 	}
 
 	/**
 	 * @return the Configuration associated with the class to test
 	 */
-	public Configuration getConfig() {
+	public IConfigEvolutionary getConfig() {
 		return config;
-	}
-
-	/**
-	 * @param args The same args to pass to Testful.jar
-	 */
-	public void setArgs(String[] args) {
-		this.args = args;
-	}
-
-	/**
-	 * @return the args
-	 */
-	public String[] getArgs() {
-		return args;
 	}
 
 	@Override
 	public Result Result() {
-		return result;
-	}
-
-	public void setTime(int totalTime) {
-		time = totalTime;
-	}
-
-	private class OpenShellResult extends Thread {
-
-		private Result result;
-
-		public OpenShellResult (Result result) {
-			this.result = result;
-		}
-
-		@Override
-		public void run() {
-			ShellTestfulResult tr = new ShellTestfulResult(Display.getDefault(), result);
-			tr.run();
-		}
+		return null;
 	}
 }
