@@ -1,5 +1,6 @@
 package testful.gui.wizard;
 
+import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.wizard.Wizard;
 
@@ -12,8 +13,11 @@ import testful.gui.GenerationJob;
 public class TestfulWizard extends Wizard {
 
 	private final ConfigEvolutionary config;
+	private final IResource project;
 
-	public TestfulWizard(IConfigCut cut) throws TestfulException {
+	public TestfulWizard(IConfigCut cut, IResource projectResource) throws TestfulException {
+		project = projectResource;
+
 		config = new ConfigEvolutionary();
 		config.setCut(cut.getCut());
 		config.setDirBase(cut.getDirBase());
@@ -30,7 +34,7 @@ public class TestfulWizard extends Wizard {
 	@Override
 	public void addPages() {
 		try {
-			addPage(new PageXmlDescription(config));
+			addPage(new PageXmlDescription(config, project));
 			addPage(new PageTestful(config));
 		} catch (Exception e) {
 			MessageDialog.openError(getShell(), "TestFul", "Cannot start the wizard for " + config.getCut() + ":\n" + e.getMessage());
@@ -42,7 +46,7 @@ public class TestfulWizard extends Wizard {
 	public boolean performFinish() {
 		try {
 
-			GenerationJob test = new GenerationJob(config, getShell());
+			GenerationJob test = new GenerationJob(config, project, getShell());
 			test.setUser(true);
 			test.schedule();
 

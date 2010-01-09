@@ -1,11 +1,12 @@
 package testful.core;
 
+import static testful.core.Instrument.OutHandler.handle;
+
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,8 @@ import org.eclipse.core.runtime.Path;
 
 public class Instrument {
 	public static boolean instrument(String cut, String dirSource, String compiledDir, String dirContracts, String destinationDir, StringBuilder msg) throws IOException, InterruptedException {
-		List<String> cmd = new ArrayList<String>();
+
+		final List<String> cmd = new ArrayList<String>();
 
 		if (System.getProperty("os.name").contains("Windows")) {
 			cmd.add("cmd");
@@ -42,42 +44,58 @@ public class Instrument {
 		cmd.add("-cut");
 		cmd.add(cut);
 
-		Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
+		final Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
+
+		StringBuffer tmp = new StringBuffer();
+		handle(p.getInputStream(), tmp);
+		handle(p.getErrorStream(), tmp);
+
 		p.waitFor();
 
 		if(msg != null) {
-			append(msg, p.getInputStream());
-			append(msg, p.getErrorStream());
+			msg.append(tmp.toString());
+			msg.append(tmp.toString());
 		}
 
 		return p.exitValue() == 0;
 	}
 
 	private static File getPluginResource(String path) throws IOException {
-		try {
-			URL eclipseURL = FileLocator.find(Activator.getDefault().getBundle(), new Path(path), null);
-			URL javaURL = FileLocator.toFileURL(eclipseURL);
-			return new File(javaURL.toURI());
-		} catch (URISyntaxException e) {
-			throw new IOException(e);
-		}
+		URL eclipseURL = FileLocator.find(Activator.getDefault().getBundle(), new Path(path), null);
+		URL javaURL = FileLocator.toFileURL(eclipseURL);
+		return new File(javaURL.getFile());
 	}
 
-	private static void append(StringBuilder sb, InputStream stream) {
-		BufferedReader br = new  BufferedReader(new InputStreamReader(stream));
 
-		try {
-			String line;
-			while((line = br.readLine()) != null)
-				sb.append(line).append("\n");
-		} catch (IOException e) {
-			System.err.println(e);
-		} finally {
+	static class OutHandler extends Thread {
+		private final InputStream is;
+		private final StringBuffer out;
+
+		public OutHandler(InputStream is, StringBuffer out) {
+			this.is = is;
+			this.out = out;
+		}
+
+		@Override
+		public void run() {
 			try {
-				stream.close();
-			} catch (IOException e) {
+				BufferedReader br = new BufferedReader(new InputStreamReader(is));
+				String line=null;
+				while ((line = br.readLine()) != null)
+					out.append(line);
+
+			} catch (IOException ioe) {
+				ioe.printStackTrace();
+			} finally {
+				try {
+					is.close();
+				} catch (IOException e) {
+				}
 			}
 		}
-	}
 
+		public static void handle(InputStream stream, StringBuffer out) {
+			new OutHandler(stream, out).start();
+		}
+	}
 }

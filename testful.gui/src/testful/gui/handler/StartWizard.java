@@ -3,6 +3,7 @@ package testful.gui.handler;
 import org.eclipse.core.commands.AbstractHandler;
 import org.eclipse.core.commands.ExecutionEvent;
 import org.eclipse.core.commands.ExecutionException;
+import org.eclipse.core.resources.IResource;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.IStructuredSelection;
 import org.eclipse.jface.wizard.WizardDialog;
@@ -19,9 +20,11 @@ public class StartWizard extends AbstractHandler {
 		final Shell shell = HandlerUtil.getActiveShell(event);
 
 		try {
-			ConfigCut config = ConfigUtils.getConfigCut((IStructuredSelection) HandlerUtil.getActiveMenuSelection(event));
+			final IStructuredSelection selection = (IStructuredSelection) HandlerUtil.getActiveMenuSelection(event);
+			ConfigCut config = ConfigUtils.getConfigCut(selection);
+			IResource projectResource = ConfigUtils.getProjectResource(selection);
 
-			TestfulWizard wizard = new TestfulWizard(config);
+			TestfulWizard wizard = new TestfulWizard(config, projectResource);
 
 			WizardDialog dialog = new WizardDialog(shell, wizard);
 			dialog.create();
