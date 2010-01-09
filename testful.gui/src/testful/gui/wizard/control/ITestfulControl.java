@@ -1,4 +1,4 @@
-package testful.gui.control;
+package testful.gui.wizard.control;
 
 
 public interface ITestfulControl<T> {

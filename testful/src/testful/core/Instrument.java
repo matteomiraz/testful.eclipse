@@ -12,14 +12,23 @@ import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 
 public class Instrument {
-	public static boolean instrument(String cut, String baseDir, StringBuilder msg) throws IOException, InterruptedException {
+	public static boolean instrument(String cut, String dirSource, String compiledDir, String dirContracts, String destinationDir, StringBuilder msg) throws IOException, InterruptedException {
 		StringBuilder cmd = new StringBuilder();
+
+		if (System.getProperty("os.name").contains("Windows"))
+			cmd.append("cmd /c ");
+
+		//TODO: what if there are spaces?
 
 		cmd.append("java");
 		cmd.append(" -cp ").append(getPluginResource("/instrumenter.jar")).append(" testful.coverage.Launcher");
+		cmd.append(" -dirSource ").append(dirSource);
+		cmd.append(" -dirCompiled ").append(compiledDir);
+		cmd.append(" -dirContracts ").append(dirContracts);
+		cmd.append(" -dirInstrumented ").append(destinationDir);
 		cmd.append(" -cut ").append(cut);
-		if(baseDir != null)
-			cmd.append(" -dir ").append(baseDir);
+
+		msg.append("Executing " + cmd + "\n");
 
 		Process p = Runtime.getRuntime().exec(cmd.toString());
 		p.waitFor();

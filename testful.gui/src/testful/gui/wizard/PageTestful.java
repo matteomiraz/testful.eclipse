@@ -1,4 +1,4 @@
-package testful.gui;
+package testful.gui.wizard;
 
 import java.io.File;
 
@@ -8,61 +8,47 @@ import org.eclipse.swt.custom.ScrolledComposite;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Control;
 import org.eclipse.swt.widgets.Label;
 
-import testful.ConfigCut;
-import testful.TestfulException;
 import testful.IConfigProject.LogLevel;
 import testful.evolutionary.ConfigEvolutionary;
 import testful.evolutionary.jMetal.FitnessInheritance;
-import testful.gui.control.ControlCombo;
-import testful.gui.control.ControlInteger;
-import testful.gui.control.ControlLabel;
-import testful.gui.control.ControlText;
-import testful.gui.control.ITestfulControl;
-import testful.gui.operator.Result;
-import testful.gui.operator.TestGenerator;
+import testful.gui.wizard.control.ControlCombo;
+import testful.gui.wizard.control.ControlInteger;
+import testful.gui.wizard.control.ControlLabel;
+import testful.gui.wizard.control.ControlText;
+import testful.gui.wizard.control.ITestfulControl;
 
-public class PageTestful extends WizardPage implements ITestfulWizardPage {
+public class PageTestful extends WizardPage {
 
 	private final ConfigEvolutionary config;
 	private ScrolledComposite scrMain;
-	private Composite parent;
-	private GridData gdtHV;
 
-	public PageTestful(ConfigCut cut) throws TestfulException {
+	public PageTestful(ConfigEvolutionary config) {
 		super("Testful");
 		setTitle("Test generator");
 		setDescription("Set parameters to generate tests cases");
-		config = new ConfigEvolutionary();
-		config.setCut(cut.getCut());
-		config.setDirBase(cut.getDirBase());
-		config.setDirSource(cut.getDirSource());
-		config.setDirCompiled(cut.getDirCompiled());
-		config.setDirContracts(cut.getDirContracts());
-		config.setDirInstrumented(cut.getDirInstrumented());
 
-		config.setQuiet(true);
-		config.setLog(null);
-		config.setLogLevel(LogLevel.WARNING);
+		this.config = config;
 	}
 
 	@Override
 	public void createControl(final Composite parent) {
-		this.parent = parent;
-		initGUI();
-
 		Composite cmpMain = new Composite(parent, SWT.NONE);
 		cmpMain.setLayout(new GridLayout());
+		setControl(cmpMain);
 
 		new Label(cmpMain, SWT.NONE).setText("Testful options:");
 
 		scrMain = new ScrolledComposite(cmpMain, SWT.BORDER | SWT.V_SCROLL);
 		scrMain.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
+		scrMain.setExpandHorizontal(true);
+		scrMain.setExpandVertical(true);
 
 		Composite co = new Composite(scrMain, SWT.NONE);
 		co.setLayout(new GridLayout());
+		scrMain.setContent(co);
+
 		Composite cmpGrid = new Composite(co, SWT.NONE);
 		cmpGrid.setLayout(new GridLayout(2, false));
 		cmpGrid.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_GRAY));
@@ -255,41 +241,6 @@ public class PageTestful extends WizardPage implements ITestfulWizardPage {
 			});
 		}
 
-
-		scrMain.setContent(co);
-		scrMain.setExpandHorizontal(true);
-		scrMain.setExpandVertical(true);
-		scrMain.setMinSize(co.computeSize(SWT.DEFAULT, SWT.DEFAULT));
-
-		setControl(cmpMain);
+		//scrMain.setMinSize(co.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 	}
-
-	private void initGUI() {
-		gdtHV = new GridData();
-		gdtHV.horizontalAlignment = GridData.FILL;
-		gdtHV.verticalAlignment = GridData.FILL;
-		gdtHV.grabExcessHorizontalSpace = true;
-		gdtHV.grabExcessVerticalSpace = true;
-	}
-
-	@Override
-	public Result finish() {
-		try {
-			TestGenerator test = new TestGenerator(config);
-			test.schedule();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-		return null;
-	}
-
-	@Override
-	public Control getParentControl() {
-		return parent;
-	}
-
-	@Override
-	public void start() {
-	}
-
 }
