@@ -18,3 +18,4 @@ Export-Package: testful,
  testful.runner,
  testful.utils
 Bundle-ClassPath: .
+Bundle-Vendor: TestFul Team
