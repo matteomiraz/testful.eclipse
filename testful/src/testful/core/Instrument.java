@@ -7,30 +7,42 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.eclipse.core.runtime.FileLocator;
 import org.eclipse.core.runtime.Path;
 
 public class Instrument {
 	public static boolean instrument(String cut, String dirSource, String compiledDir, String dirContracts, String destinationDir, StringBuilder msg) throws IOException, InterruptedException {
-		StringBuilder cmd = new StringBuilder();
+		List<String> cmd = new ArrayList<String>();
 
-		if (System.getProperty("os.name").contains("Windows"))
-			cmd.append("cmd /c ");
+		if (System.getProperty("os.name").contains("Windows")) {
+			cmd.add("cmd");
+			cmd.add("/c");
+		}
 
-		//TODO: what if there are spaces?
+		cmd.add("java");
+		cmd.add("-cp");
+		cmd.add(getPluginResource("/instrumenter.jar").getAbsolutePath());
+		cmd.add("testful.coverage.Launcher");
 
-		cmd.append("java");
-		cmd.append(" -cp ").append(getPluginResource("/instrumenter.jar")).append(" testful.coverage.Launcher");
-		cmd.append(" -dirSource ").append(dirSource);
-		cmd.append(" -dirCompiled ").append(compiledDir);
-		cmd.append(" -dirContracts ").append(dirContracts);
-		cmd.append(" -dirInstrumented ").append(destinationDir);
-		cmd.append(" -cut ").append(cut);
+		cmd.add("-dirSource");
+		cmd.add(dirSource);
 
-		msg.append("Executing " + cmd + "\n");
+		cmd.add("-dirCompiled");
+		cmd.add(compiledDir);
 
-		Process p = Runtime.getRuntime().exec(cmd.toString());
+		cmd.add("-dirContracts");
+		cmd.add(dirContracts);
+
+		cmd.add("-dirInstrumented");
+		cmd.add(destinationDir);
+
+		cmd.add("-cut");
+		cmd.add(cut);
+
+		Process p = Runtime.getRuntime().exec(cmd.toArray(new String[cmd.size()]));
 		p.waitFor();
 
 		if(msg != null) {

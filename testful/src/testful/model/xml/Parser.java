@@ -69,7 +69,11 @@ public class Parser {
 		FileOutputStream out = null;
 
 		try {
-			out = new FileOutputStream(new File(config.getDirSource(), xml.getName().replace('.', File.separatorChar) + ".xml"));
+			final File outFile = new File(config.getDirSource(), xml.getName().replace('.', File.separatorChar) + ".xml");
+			if(!outFile.getParentFile().exists())
+				outFile.getParentFile().mkdirs();
+
+			out = new FileOutputStream(outFile);
 			marshaller.marshal(xml, out);
 			return true;
 		} catch(IOException e) {
