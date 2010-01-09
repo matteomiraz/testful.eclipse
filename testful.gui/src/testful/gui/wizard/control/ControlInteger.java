@@ -1,4 +1,4 @@
-package testful.gui.control;
+package testful.gui.wizard.control;
 
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;

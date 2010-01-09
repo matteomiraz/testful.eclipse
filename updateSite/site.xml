@@ -9,6 +9,9 @@
    <feature url="features/testful_1.0.1.jar" id="testful" version="1.0.1">
       <category name="testful"/>
    </feature>
+   <feature url="features/testful_1.0.2.jar" id="testful" version="1.0.2">
+      <category name="testful"/>
+   </feature>
    <category-def name="testful" label="TestFul">
       <description>
          Test Generation Framework

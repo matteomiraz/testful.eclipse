@@ -1,4 +1,4 @@
-package testful.gui.control;
+package testful.gui.wizard.control;
 
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.swt.SWT;

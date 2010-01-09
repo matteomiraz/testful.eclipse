@@ -2,7 +2,7 @@
 <feature
       id="testful"
       label="TestFul"
-      version="1.0.1">
+      version="1.0.2">
 
    <description url="http://code.google.com/p/testful/">
       TestFul is a test-case generator for Java classes.

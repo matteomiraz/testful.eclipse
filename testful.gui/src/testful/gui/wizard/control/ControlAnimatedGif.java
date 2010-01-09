@@ -1,4 +1,4 @@
-package testful.gui.control;
+package testful.gui.wizard.control;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.SWTException;
