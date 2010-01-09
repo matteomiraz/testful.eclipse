@@ -6,6 +6,8 @@ import java.net.URLClassLoader;
 
 import javax.xml.bind.JAXBException;
 
+import org.eclipse.core.resources.IResource;
+import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.viewers.ISelectionChangedListener;
 import org.eclipse.jface.viewers.IStructuredSelection;
@@ -49,6 +51,8 @@ public class PageXmlDescription extends WizardPage {
 
 	private Shell shell;
 
+	private final IResource project;
+
 	private Composite properties;
 	private TreeViewer treeViewer;
 	private final XmlContentProvider contentProvider;
@@ -56,10 +60,12 @@ public class PageXmlDescription extends WizardPage {
 	private IConfigCut config;
 	private ClassLoader classLoader;
 
-	public PageXmlDescription(IConfigCut iconfig) throws MalformedURLException {
+	public PageXmlDescription(IConfigCut iconfig, IResource projectResource) throws MalformedURLException {
 		super("Xml Description");
 		setTitle("Class Descriptor");
 		setDescription("Describe the classes involved in the test");
+
+		project = projectResource;
 
 		config = iconfig;
 		contentProvider = new XmlContentProvider(iconfig);
@@ -162,6 +168,13 @@ public class PageXmlDescription extends WizardPage {
 
 	public void save() throws JAXBException {
 		contentProvider.save();
+
+		try {
+			project.refreshLocal(IResource.DEPTH_INFINITE, null);
+		} catch (CoreException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	private void reload() {

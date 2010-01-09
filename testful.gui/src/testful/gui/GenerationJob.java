@@ -3,7 +3,6 @@ package testful.gui;
 import java.io.File;
 
 import org.eclipse.core.resources.IResource;
-import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
 import org.eclipse.core.runtime.IStatus;
@@ -25,16 +24,18 @@ import testful.utils.FileUtils;
 
 public class GenerationJob extends Job {
 
+	private final IResource projectResource;
 	private final ConfigEvolutionary config;
 	private Shell shell;
 
 	/**
 	 * @param config Configuration associated with the class to test
 	 */
-	public GenerationJob(ConfigEvolutionary config, Shell shell) {
+	public GenerationJob(ConfigEvolutionary config, IResource projectResource, Shell shell) {
 		super("TestFul");
 		this.config = config;
 		this.shell = shell;
+		this.projectResource= projectResource;
 	}
 
 	@Override
@@ -52,14 +53,12 @@ public class GenerationJob extends Job {
 			generate(new SubProgressMonitor(monitor, 95));
 
 			try {
-				ResourcesPlugin.getWorkspace().getRoot().refreshLocal(IResource.DEPTH_INFINITE, monitor);
+				projectResource.refreshLocal(IResource.DEPTH_INFINITE, monitor);
 			} catch (CoreException e) {
 				e.printStackTrace();
 			}
 
 			if (isModal(this)) {
-				// The progress dialog is still open so
-				// just open the message
 				showResults();
 			} else {
 				setProperty(IProgressConstants.KEEP_PROPERTY, Boolean.TRUE);

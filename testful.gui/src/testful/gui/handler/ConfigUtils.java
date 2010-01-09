@@ -17,6 +17,18 @@ import testful.ConfigCut;
 
 public class ConfigUtils {
 
+	public static IResource getProjectResource(IStructuredSelection selection) throws Exception {
+		Object firstElement = selection.getFirstElement();
+		if (firstElement instanceof ICompilationUnit) {
+			ICompilationUnit compilationUnit = (ICompilationUnit) firstElement;
+
+			IResource resource = compilationUnit.getResource();
+			return resource.getProject();
+		} else {
+			throw new Exception("Please select a Java source file");
+		}
+	}
+
 	public static ConfigCut getConfigCut(IStructuredSelection selection) throws Exception {
 		Object firstElement = selection.getFirstElement();
 		if (firstElement instanceof ICompilationUnit) {
