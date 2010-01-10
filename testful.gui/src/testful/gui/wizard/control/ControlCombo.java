@@ -21,10 +21,6 @@ public class ControlCombo<T> {
 		this(parent, getGridData(), values, defaultValue, null);
 	}
 
-	public ControlCombo(Composite parent, GridData gdt, final T[] values, T defaultValue) {
-		this(parent, gdt, values, defaultValue, null);
-	}
-
 	public ControlCombo(Composite parent, GridData gdt, final T[] values, T defaultValue, final ITestfulControl<T> control) {
 		combo = new Combo(parent, SWT.READ_ONLY);
 		combo.setLayoutData(gdt);

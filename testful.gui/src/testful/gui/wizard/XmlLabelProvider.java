@@ -16,13 +16,19 @@ import testful.model.xml.XmlParameter;
 public class XmlLabelProvider implements ILabelProvider {
 
 	private final Map<ImageDescriptor, Image> imageCache = new HashMap<ImageDescriptor, Image>();
+	private final XmlContentProvider contentProvider;
+
+	public XmlLabelProvider(XmlContentProvider contentProvider) {
+		this.contentProvider = contentProvider;
+	}
 
 	@Override
 	public Image getImage(Object element) {
 		ImageDescriptor descriptor = null;
-		if (element instanceof String)
-			descriptor = Activator.getImageDescriptor("info.gif");
-		else if (element instanceof XmlConstructor)
+		if (element instanceof String) {
+			if(contentProvider.getClassXml((String)element) != null) descriptor = Activator.getImageDescriptor("class.gif");
+			else descriptor = Activator.getImageDescriptor("class_empty.gif");
+		} else if (element instanceof XmlConstructor)
 			descriptor = Activator.getImageDescriptor("constructor.gif");
 		else if (element instanceof XmlMethod)
 			descriptor = Activator.getImageDescriptor("method.gif");

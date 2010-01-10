@@ -5,10 +5,9 @@ import java.io.File;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.ScrolledComposite;
-import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridLayout;
 import org.eclipse.swt.widgets.Composite;
-import org.eclipse.swt.widgets.Label;
 
 import testful.IConfigProject.LogLevel;
 import testful.evolutionary.ConfigEvolutionary;
@@ -22,7 +21,6 @@ import testful.gui.wizard.control.ITestfulControl;
 public class PageTestful extends WizardPage {
 
 	private final ConfigEvolutionary config;
-	private ScrolledComposite scrMain;
 
 	public PageTestful(ConfigEvolutionary config) {
 		super("Testful");
@@ -34,28 +32,21 @@ public class PageTestful extends WizardPage {
 
 	@Override
 	public void createControl(final Composite parent) {
-		Composite cmpMain = new Composite(parent, SWT.NONE);
-		cmpMain.setLayout(new GridLayout());
-		setControl(cmpMain);
 
-		new Label(cmpMain, SWT.NONE).setText("Testful options:");
+		ScrolledComposite scrollComposite = new ScrolledComposite(parent, SWT.H_SCROLL | SWT.V_SCROLL);
+		scrollComposite.setLayout(new FillLayout());
+		setControl(scrollComposite);
 
-		scrMain = new ScrolledComposite(cmpMain, SWT.BORDER | SWT.V_SCROLL);
-		scrMain.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true, 1, 1));
-		scrMain.setExpandHorizontal(true);
-		scrMain.setExpandVertical(true);
-
-		Composite co = new Composite(scrMain, SWT.NONE);
-		co.setLayout(new GridLayout());
-		scrMain.setContent(co);
-
-		Composite cmpGrid = new Composite(co, SWT.NONE);
+		Composite cmpGrid = new Composite(scrollComposite, SWT.NONE);
 		cmpGrid.setLayout(new GridLayout(2, false));
-		cmpGrid.setBackground(parent.getDisplay().getSystemColor(SWT.COLOR_GRAY));
+		cmpGrid.setSize(scrollComposite.getSize());
+		scrollComposite.setContent(cmpGrid);
+		scrollComposite.setExpandVertical(true);
+		scrollComposite.setExpandHorizontal(true);
 
 		{
 			new ControlLabel(cmpGrid, "Time:", "The maximum execution time (in seconds)");
-			new ControlInteger(cmpGrid, null, config.getTime(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+			new ControlInteger(cmpGrid, config.getTime(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
 				@Override
 				public void update(Integer newValue) {
 					config.setTime(newValue);
@@ -75,7 +66,7 @@ public class PageTestful extends WizardPage {
 
 		{
 			new ControlLabel(cmpGrid, "Maximum test length:", "Maximum length of each test (n° of invocations)");
-			new ControlInteger(cmpGrid, null, config.getMaxTestLen(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
+			new ControlInteger(cmpGrid, config.getMaxTestLen(), ControlInteger.getPositive(new ITestfulControl<Integer>() {
 				@Override
 				public void update(Integer newValue) {
 					config.setMaxTestLen(newValue);
@@ -241,6 +232,6 @@ public class PageTestful extends WizardPage {
 			});
 		}
 
-		//scrMain.setMinSize(co.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		scrollComposite.setMinSize(cmpGrid.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 	}
 }
