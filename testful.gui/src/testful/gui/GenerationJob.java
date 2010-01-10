@@ -78,8 +78,7 @@ public class GenerationJob extends Job {
 		}
 	}
 
-	private void generate(final IProgressMonitor monitor)
-	throws TestfulException, InterruptedException {
+	private void generate(final IProgressMonitor monitor) throws TestfulException {
 		monitor.beginTask("TestFul", config.getTime() * 1000);
 		monitor.subTask("starting the evolutionary engine...");
 

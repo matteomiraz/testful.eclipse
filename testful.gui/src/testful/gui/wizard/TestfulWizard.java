@@ -8,6 +8,7 @@ import testful.IConfigCut;
 import testful.TestfulException;
 import testful.IConfigProject.LogLevel;
 import testful.evolutionary.ConfigEvolutionary;
+import testful.gui.Activator;
 import testful.gui.GenerationJob;
 
 public class TestfulWizard extends Wizard {
@@ -29,6 +30,8 @@ public class TestfulWizard extends Wizard {
 		config.setQuiet(true);
 		config.setLog(null);
 		config.setLogLevel(LogLevel.WARNING);
+
+		setDefaultPageImageDescriptor(Activator.getImageDescriptor("testful_wizard_big.gif"));
 	}
 
 	@Override

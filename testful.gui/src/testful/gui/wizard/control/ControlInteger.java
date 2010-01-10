@@ -1,17 +1,12 @@
 package testful.gui.wizard.control;
 
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.Composite;
 
 
 public class ControlInteger extends ControlText {
 
 	public ControlInteger(Composite parent, Integer value, ITestfulControl<Integer> control) {
-		super(parent, Integer.toString(value), createTextControl(control));
-	}
-
-	public ControlInteger(Composite parent, GridData gdt, Integer value, ITestfulControl<Integer> control) {
-		super(parent, gdt, Integer.toString(value), createTextControl(control));
+		super(parent, getGridData(), Integer.toString(value), createTextControl(control));
 	}
 
 	private static ITestfulControl<String> createTextControl(final ITestfulControl<Integer> control) {

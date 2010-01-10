@@ -53,7 +53,7 @@ public class ControlText {
 
 	}
 
-	private static GridData getGridData() {
+	protected static GridData getGridData() {
 		GridData gdtH = new GridData();
 		gdtH.horizontalAlignment = GridData.FILL;
 		gdtH.grabExcessHorizontalSpace = true;

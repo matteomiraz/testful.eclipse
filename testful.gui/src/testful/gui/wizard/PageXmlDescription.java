@@ -16,10 +16,14 @@ import org.eclipse.jface.viewers.TreeViewer;
 import org.eclipse.jface.wizard.WizardPage;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.SashForm;
+import org.eclipse.swt.custom.ScrolledComposite;
+import org.eclipse.swt.events.ControlEvent;
+import org.eclipse.swt.events.ControlListener;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
 import org.eclipse.swt.events.SelectionAdapter;
 import org.eclipse.swt.events.SelectionEvent;
+import org.eclipse.swt.graphics.Rectangle;
 import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
@@ -53,7 +57,7 @@ public class PageXmlDescription extends WizardPage {
 
 	private final IResource project;
 
-	private Composite properties;
+	private ScrolledComposite propertiesScroller;
 	private TreeViewer treeViewer;
 	private final XmlContentProvider contentProvider;
 
@@ -100,7 +104,7 @@ public class PageXmlDescription extends WizardPage {
 			{
 				treeViewer = new TreeViewer(sashForm, SWT.V_SCROLL | SWT.H_SCROLL | SWT.BORDER);
 				treeViewer.setContentProvider(contentProvider);
-				treeViewer.setLabelProvider(new XmlLabelProvider());
+				treeViewer.setLabelProvider(new XmlLabelProvider(contentProvider));
 				treeViewer.setInput(testCluster != null ? testCluster : XmlContentProvider.EMPTY_TEST_CLUSTER);
 				treeViewer.addSelectionChangedListener(new ISelectionChangedListener() {
 
@@ -128,8 +132,13 @@ public class PageXmlDescription extends WizardPage {
 			}
 
 			{
-				properties = new Composite(sashForm, SWT.NONE);
-				properties.setLayout(new GridLayout(2, false));
+				propertiesScroller = new ScrolledComposite(sashForm, SWT.V_SCROLL);
+				propertiesScroller.setExpandHorizontal(true);
+				propertiesScroller.setExpandVertical(true);
+
+				Composite properties = new Composite(propertiesScroller, SWT.NONE);
+				propertiesScroller.setContent(properties);
+
 			}
 		}
 
@@ -179,9 +188,13 @@ public class PageXmlDescription extends WizardPage {
 
 	private void reload() {
 		try {
-			for (Control c : properties.getChildren())
+			for (Control c : propertiesScroller.getChildren())
 				c.dispose();
 
+			Composite properties = new Composite(propertiesScroller, SWT.NONE);
+			propertiesScroller.setContent(properties);
+
+			propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 			properties.layout();
 
 			TestCluster testCluster = new TestCluster(classLoader, config);
@@ -221,8 +234,12 @@ public class PageXmlDescription extends WizardPage {
 		final XmlClass xmlClass = contentProvider.getClassXml(className);
 
 		if (xmlClass == null) {
-			for (Control c : properties.getChildren())
+			for (Control c : propertiesScroller.getChildren())
 				c.dispose();
+
+			Composite properties = new Composite(propertiesScroller, SWT.NONE);
+			properties.setLayout(new GridLayout(2, false));
+			propertiesScroller.setContent(properties);
 
 			Label l = new Label(properties, SWT.NONE);
 			l.setLayoutData(new GridData(GridData.HORIZONTAL_ALIGN_END));
@@ -259,11 +276,16 @@ public class PageXmlDescription extends WizardPage {
 				}
 			});
 
+			propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 			properties.layout();
 
 		} else {
-			for (Control c : properties.getChildren())
+			for (Control c : propertiesScroller.getChildren())
 				c.dispose();
+
+			Composite properties = new Composite(propertiesScroller, SWT.NONE);
+			properties.setLayout(new GridLayout(2, false));
+			propertiesScroller.setContent(properties);
 
 			{
 				Label l = new Label(properties, SWT.NONE);
@@ -299,7 +321,7 @@ public class PageXmlDescription extends WizardPage {
 				l.setText("also include: ");
 
 				Composite c = new Composite(properties, SWT.NONE);
-				c.setLayoutData(new GridData(GridData.FILL_BOTH));
+				c.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 				GridLayout gl = new GridLayout();
 				gl.marginLeft = 0;
 				gl.marginBottom = 0;
@@ -332,11 +354,29 @@ public class PageXmlDescription extends WizardPage {
 				remove.setText("remove");
 				remove.setEnabled(false);
 
+				final Composite tmp = new Composite(c, SWT.NONE);
+				tmp.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
+
 				final java.util.List<XmlAux> aux = xmlClass.getAux();
-				final List list = new List(c, SWT.BORDER | SWT.V_SCROLL);
-				list.setLayoutData(new GridData(GridData.FILL_BOTH));
+				final List list = new List(tmp, SWT.BORDER | SWT.V_SCROLL);
+				//list.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 				for (XmlAux a : aux)
 					list.add(a.getName());
+
+				list.setBounds(new Rectangle(0, 0, tmp.getSize().x, list.getItemHeight() * 5));
+
+				tmp.addControlListener(new ControlListener() {
+					@Override
+					public void controlResized(ControlEvent e) {
+						list.setBounds(0, 0, tmp.getSize().x, list.getItemHeight() * 5);
+					}
+
+					@Override
+					public void controlMoved(ControlEvent e) {
+					}
+				});
+
+
 
 				text.addModifyListener(new ModifyListener() {
 					@Override
@@ -352,6 +392,7 @@ public class PageXmlDescription extends WizardPage {
 
 								aux.remove(idx);
 								list.remove(idx);
+
 							} else {
 								aux.get(idx).setName(text.getText());
 								list.setItem(idx, text.getText());
@@ -390,15 +431,35 @@ public class PageXmlDescription extends WizardPage {
 						}
 					}
 				});
+
+				remove.addSelectionListener(new SelectionAdapter() {
+					@Override
+					public void widgetSelected(SelectionEvent e) {
+						int idx = list.getSelectionIndex();
+						if (idx >= 0) {
+							remove.setEnabled(false);
+							add.setText("add");
+							add.setToolTipText("");
+
+							aux.remove(idx);
+							list.remove(idx);
+						}
+					}
+				});
 			}
 
+			propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 			properties.layout();
 		}
 	}
 
 	private void showPropertyConstructor(XmlConstructor cns) {
-		for (Control c : properties.getChildren())
+		for (Control c : propertiesScroller.getChildren())
 			c.dispose();
+
+		Composite properties = new Composite(propertiesScroller, SWT.NONE);
+		properties.setLayout(new GridLayout(2, false));
+		propertiesScroller.setContent(properties);
 
 		{
 			Label l = new Label(properties, SWT.NONE);
@@ -430,12 +491,17 @@ public class PageXmlDescription extends WizardPage {
 			}
 		}
 
+		propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		properties.layout();
 	}
 
 	private void showPropertyMethod(final XmlMethod meth) {
-		for (Control c : properties.getChildren())
+		for (Control c : propertiesScroller.getChildren())
 			c.dispose();
+
+		Composite properties = new Composite(propertiesScroller, SWT.NONE);
+		properties.setLayout(new GridLayout(2, false));
+		propertiesScroller.setContent(properties);
 
 		{
 			Label l = new Label(properties, SWT.NONE);
@@ -481,12 +547,17 @@ public class PageXmlDescription extends WizardPage {
 			});
 		}
 
+		propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		properties.layout();
 	}
 
 	private void showPropertyParameter(final XmlParameter par) {
-		for (Control c : properties.getChildren())
+		for (Control c : propertiesScroller.getChildren())
 			c.dispose();
+
+		Composite properties = new Composite(propertiesScroller, SWT.NONE);
+		properties.setLayout(new GridLayout(2, false));
+		propertiesScroller.setContent(properties);
 
 		{
 			Label l = new Label(properties, SWT.NONE);
@@ -563,6 +634,7 @@ public class PageXmlDescription extends WizardPage {
 			});
 		}
 
+		propertiesScroller.setMinSize(properties.computeSize(SWT.DEFAULT, SWT.DEFAULT));
 		properties.layout();
 	}
 }
