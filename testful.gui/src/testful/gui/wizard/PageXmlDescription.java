@@ -219,12 +219,19 @@ public class PageXmlDescription extends WizardPage {
 			setPageComplete(true);
 
 		} catch (MissingClassException e) {
+			StringBuilder msg = new StringBuilder();
+
+			msg.append("The following abstract classes or interfaces, do not have any concrete implementation:\n");
+
+			for (String missing : e.missing)
+				msg.append(missing).append(" ");
+
 			if(e.fatal) {
-				setErrorMessage("Missing: " + e.missing);
+				setErrorMessage(msg.toString().trim());
 				setPageComplete(false);
 			} else {
 				setErrorMessage("");
-				setMessage("Missing: " + e.missing, WARNING);
+				setMessage(msg.toString().trim(), WARNING);
 				setPageComplete(true);
 			}
 		}

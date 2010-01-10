@@ -2,7 +2,7 @@
 <feature
       id="testful"
       label="TestFul"
-      version="1.0.3"
+      version="1.0.4"
       provider-name="TestFul Team">
 
    <description url="http://code.google.com/p/testful/">
