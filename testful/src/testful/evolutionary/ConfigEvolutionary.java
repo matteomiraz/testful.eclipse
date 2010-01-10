@@ -38,14 +38,26 @@ implements IConfigEvolutionary, IConfigFitness.Args4j, IConfigRunner.Args4j, ICo
 		return localSearchPeriod;
 	}
 
+	public void setLocalSearchPeriod(int localSearchPeriod) {
+		this.localSearchPeriod = localSearchPeriod;
+	}
+
 	@Override
 	public int getPopSize() {
 		return popSize;
 	}
 
+	public void setPopSize(int popSize) {
+		this.popSize = popSize;
+	}
+
 	@Override
 	public FitnessInheritance getFitnessInheritance() {
 		return fitnessInheritance;
+	}
+
+	public void setFitnessInheritance(FitnessInheritance fitnessInheritance) {
+		this.fitnessInheritance = fitnessInheritance;
 	}
 
 	@Override
@@ -270,6 +282,11 @@ implements IConfigEvolutionary, IConfigFitness.Args4j, IConfigRunner.Args4j, ICo
 	@Override
 	public List<String> getRemote() {
 		return configRunner.getRemote();
+	}
+
+	public void setRemote(String remote) {
+		configRunner.getRemote().clear();
+		configRunner.addRemote(remote);
 	}
 
 	@Override
