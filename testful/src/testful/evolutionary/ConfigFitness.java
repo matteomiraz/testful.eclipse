@@ -82,10 +82,8 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBasicBlock(boolean disable) {
-		if(disable) {
-			bbd = false;
-			bbn = false;
-		}
+		bbd = !disable;
+		bbn = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -93,9 +91,7 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBasicBlockCode(boolean disable) {
-		if(disable) {
-			bbd = false;
-		}
+		bbd = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -103,9 +99,7 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBasicBlockContract(boolean disable) {
-		if(disable) {
-			bbn = false;
-		}
+		bbn = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -113,10 +107,8 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBranch(boolean disable) {
-		if(disable) {
-			brd = false;
-			brn = false;
-		}
+		brd = !disable;
+		brn = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -124,9 +116,7 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBranchCode(boolean disable) {
-		if(disable) {
-			brd = false;
-		}
+		brd = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -134,9 +124,7 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableBranchContract(boolean disable) {
-		if(disable) {
-			brn = false;
-		}
+		brn = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -144,7 +132,7 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setDisableLength(boolean disable) {
-		if(disable) length = false;
+		length = !disable;
 	}
 
 	/* (non-Javadoc)
@@ -152,6 +140,6 @@ public class ConfigFitness implements IConfigFitness, IConfigFitness.Args4j {
 	 */
 	@Override
 	public void setEnableBug(boolean bug) {
-		if(bug) this.bug = true;
+		this.bug = bug;
 	}
 }
