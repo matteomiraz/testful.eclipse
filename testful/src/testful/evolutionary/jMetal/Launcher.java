@@ -103,6 +103,7 @@ public class Launcher {
 			LocalSearch<Operation> localSearch = problem.getLocalSearch();
 			algorithm.setImprovement(localSearch);
 			algorithm.setLocalSearchPeriod(config.getLocalSearchPeriod());
+			algorithm.setLocalSearchNum(config.getLocalSearchElements()/100.0f);
 		}
 
 		for (Callback callBack : callBacks)
