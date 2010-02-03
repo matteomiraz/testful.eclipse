@@ -8,6 +8,8 @@ public interface IConfigEvolutionary extends IConfigGeneration, IConfigRunner, I
 
 	public int getLocalSearchPeriod();
 
+	public int getLocalSearchElements();
+
 	public int getPopSize();
 
 	public FitnessInheritance getFitnessInheritance();

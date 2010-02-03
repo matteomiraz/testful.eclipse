@@ -24,6 +24,9 @@ implements IConfigEvolutionary, IConfigFitness.Args4j, IConfigRunner.Args4j, ICo
 	@Option(required = false, name = "-localSearchPeriod", usage = "Period of the local search (default: every 20 generations; <= 0 to disable local search)")
 	private int localSearchPeriod = 20;
 
+	@Option(required = false, name = "-localSearchElements", usage = "% of elements on which the local search is applied (0 to consider the whole fronteer, 100 to enhance all the elements in the population)")
+	private int localSearchElements = 0;
+
 	@Option(required = false, name = "-popSize", usage = "The size of the population (# of individuals)")
 	private int popSize = 512;
 
@@ -39,6 +42,11 @@ implements IConfigEvolutionary, IConfigFitness.Args4j, IConfigRunner.Args4j, ICo
 	@Override
 	public int getLocalSearchPeriod() {
 		return localSearchPeriod;
+	}
+
+	@Override
+	public int getLocalSearchElements() {
+		return localSearchElements;
 	}
 
 	@Override

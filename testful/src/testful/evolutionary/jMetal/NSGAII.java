@@ -64,6 +64,9 @@ implements IUpdate {
 	/** period of the local search (in generations) */
 	private int localSearchPeriod = 20;
 
+	/** number of elements on which the local search is applied */
+	private int localSearchNum = 0;
+
 	/**
 	 * Constructor
 	 * @param problem Problem to solve
@@ -86,6 +89,21 @@ implements IUpdate {
 
 	public int getLocalSearchPeriod() {
 		return localSearchPeriod;
+	}
+
+	public void setLocalSearchNum(int localSearchNum) {
+		this.localSearchNum = localSearchNum;
+	}
+
+	public void setLocalSearchNum(float perc) {
+		if(perc < 0) perc = 0;
+		if(perc > 1) perc = 1;
+
+		this.localSearchNum = (int) (getPopulationSize()*perc);
+	}
+
+	public int getLocalSearchNum() {
+		return localSearchNum;
 	}
 
 	private boolean useCpuTime = false;
@@ -145,18 +163,20 @@ implements IUpdate {
 
 			// perform the improvement
 			if(improvement != null && currentGeneration % localSearchPeriod == 0) {
-				SolutionSet<V> front = new Ranking<V>(population).getSubfront(0);
 
-				logger.info("Local search on fronteer (" + front.size() + ")");
-
-				if(improvement instanceof LocalSearchPopulation<?>) {
+				if(localSearchNum == 0 && improvement instanceof LocalSearchPopulation<?>) {
+					SolutionSet<V> front = new Ranking<V>(population).getSubfront(0);
+					logger.info("Local search on fronteer (" + front.size() + ")");
 					SolutionSet<V> mutated = ((LocalSearchPopulation<V>)improvement).execute(front);
 					if(mutated != null) problem_.evaluate(mutated);
-
 				} else {
-					Solution<V> solution = front.get(PseudoRandom.getMersenneTwisterFast().nextInt(front.size()));
-					solution = improvement.execute(solution);
-					if(solution != null) problem_.evaluate(solution);
+					for (int i = 0; i < localSearchNum && time.getCurrentMs() < maxTime; i++) {
+						final int randInt = PseudoRandom.getMersenneTwisterFast().nextInt(populationSize);
+						logger.info("Local search " + i + "/" + localSearchNum + " on element " + randInt);
+						Solution<V> solution = population.get(randInt);
+						solution = improvement.execute(solution);
+						if(solution != null) problem_.evaluate(solution);
+					}
 				}
 			}
 
