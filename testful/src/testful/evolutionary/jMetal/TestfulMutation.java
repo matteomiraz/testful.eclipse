@@ -25,7 +25,7 @@ public class TestfulMutation extends Mutation<Operation> {
 		this.probRemove = probRemove;
 	}
 
-	private float probSimplify = 0.05f;
+	private float probSimplify = 0f;
 	public void setProbSimplify(float probSimplify) {
 		this.probSimplify = probSimplify;
 	}
@@ -48,7 +48,7 @@ public class TestfulMutation extends Mutation<Operation> {
 			return;
 		}
 
-		if(random.nextBoolean(probSimplify)) {
+		if(probSimplify > 0 && random.nextBoolean(probSimplify)) {
 			// remove all useless operations
 			Test t = TestSplitter.splitAndMerge(new Test(cluster, refFactory, repr.toArray(new Operation[repr.size()])));
 
