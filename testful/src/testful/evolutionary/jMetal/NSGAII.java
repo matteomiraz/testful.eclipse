@@ -20,6 +20,9 @@ import jmetal.util.JMException;
 import jmetal.util.PseudoRandom;
 import jmetal.util.Ranking;
 import testful.IUpdate;
+import testful.utils.Time;
+import testful.utils.TimeCPU;
+import testful.utils.TimeWall;
 
 /**
  * This class implements the NSGA-II algorithm.
@@ -61,6 +64,9 @@ implements IUpdate {
 	/** period of the local search (in generations) */
 	private int localSearchPeriod = 20;
 
+	/** number of elements on which the local search is applied */
+	private int localSearchNum = 0;
+
 	/**
 	 * Constructor
 	 * @param problem Problem to solve
@@ -81,9 +87,28 @@ implements IUpdate {
 		this.localSearchPeriod = localSearchPeriod;
 	}
 
-
 	public int getLocalSearchPeriod() {
 		return localSearchPeriod;
+	}
+
+	public void setLocalSearchNum(int localSearchNum) {
+		this.localSearchNum = localSearchNum;
+	}
+
+	public void setLocalSearchNum(float perc) {
+		if(perc < 0) perc = 0;
+		if(perc > 1) perc = 1;
+
+		this.localSearchNum = (int) (getPopulationSize()*perc);
+	}
+
+	public int getLocalSearchNum() {
+		return localSearchNum;
+	}
+
+	private boolean useCpuTime = false;
+	public void setUseCpuTime(boolean useCpuTime) {
+		this.useCpuTime = useCpuTime;
 	}
 
 	/**
@@ -94,8 +119,6 @@ implements IUpdate {
 	 */
 	@Override
 	public SolutionSet<V> execute() throws JMException {
-		long startTime = System.currentTimeMillis();
-
 		SolutionSet<V> population;
 		SolutionSet<V> union;
 
@@ -108,7 +131,18 @@ implements IUpdate {
 		int evaluations = 0;
 
 		int currentGeneration = 0;
-		problem_.setCurrentGeneration(currentGeneration++, System.currentTimeMillis() - startTime);
+		problem_.setCurrentGeneration(currentGeneration++, 0);
+
+		Time time;
+		if(useCpuTime) {
+			try {
+				time = new TimeCPU();
+			} catch (Exception e) {
+				time = new TimeWall();
+			}
+		} else {
+			time = new TimeWall();
+		}
 
 		// Create the initial solutionSet
 		for (int i = 0; i < populationSize; i++)
@@ -119,34 +153,36 @@ implements IUpdate {
 		for(Solution<V> solution : population)
 			problem_.evaluateConstraints(solution);
 
-		problem_.setCurrentGeneration(currentGeneration++, System.currentTimeMillis() - startTime);
+		long currentTime = time.getCurrentMs();
+		problem_.setCurrentGeneration(currentGeneration++, currentTime);
 
 		// Generations ...
-		while ((System.currentTimeMillis() - startTime) < maxTime) {
-			update(startTime, System.currentTimeMillis(), startTime+maxTime);
+		while (currentTime < maxTime) {
+			update(0, currentTime, maxTime);
 
 			// perform the improvement
 			if(improvement != null && currentGeneration % localSearchPeriod == 0) {
-				SolutionSet<V> front = new Ranking<V>(population).getSubfront(0);
 
-				logger.info("Local search on fronteer (" + front.size() + ")");
-
-				if(improvement instanceof LocalSearchPopulation<?>) {
+				if(localSearchNum == 0 && improvement instanceof LocalSearchPopulation<?>) {
+					SolutionSet<V> front = new Ranking<V>(population).getSubfront(0);
+					logger.info("Local search on fronteer (" + front.size() + ")");
 					SolutionSet<V> mutated = ((LocalSearchPopulation<V>)improvement).execute(front);
 					if(mutated != null) problem_.evaluate(mutated);
-
 				} else {
-					Solution<V> solution = front.get(PseudoRandom.getMersenneTwisterFast().nextInt(front.size()));
-					solution = improvement.execute(solution);
-					if(solution != null) problem_.evaluate(solution);
+					for (int i = 0; i < localSearchNum && time.getCurrentMs() < maxTime; i++) {
+						final int randInt = PseudoRandom.getMersenneTwisterFast().nextInt(populationSize);
+						logger.info("Local search " + i + "/" + localSearchNum + " on element " + randInt);
+						Solution<V> solution = population.get(randInt);
+						solution = improvement.execute(solution);
+						if(solution != null) problem_.evaluate(solution);
+					}
 				}
 			}
 
-			final long current = System.currentTimeMillis() - startTime;
-			final long remaining = (maxTime - current) / 1000;
+			final long remaining = (maxTime - currentTime) / 1000;
 
 			logger.info(String.format("(%5.2f%%) Evaluating generation %d - %d:%02d to go",
-					(100.0 * current) / maxTime,
+					(100.0 * currentTime) / maxTime,
 					currentGeneration,
 					remaining / 60,
 					remaining % 60));
@@ -259,7 +295,8 @@ implements IUpdate {
 				remain = 0;
 			} // if
 
-			problem_.setCurrentGeneration(currentGeneration++, System.currentTimeMillis() - startTime);
+			currentTime = time.getCurrentMs();
+			problem_.setCurrentGeneration(currentGeneration++, currentTime);
 
 		} // while
 

@@ -14,17 +14,21 @@ import testful.ConfigProject;
 import testful.IConfigProject;
 import testful.TestFul;
 import testful.model.Operation;
-import testful.model.OperationStatus;
+import testful.model.OperationResult;
+import testful.model.OperationResult.Status;
 import testful.model.Test;
 import testful.model.TestExecutionManager;
 import testful.model.TestReader;
-import testful.model.OperationStatus.Status;
 import testful.runner.ClassFinder;
 import testful.runner.ClassFinderCaching;
 import testful.runner.ClassFinderImpl;
 import testful.runner.IRunner;
 import testful.runner.RunnerPool;
 
+/**
+ * Executes one or more tests on a given class.
+ * @author matteo
+ */
 public class Replay extends TestReader {
 
 	private static final Logger logger = Logger.getLogger("testful.regression");
@@ -35,7 +39,7 @@ public class Replay extends TestReader {
 		public boolean exitOnBug;
 
 		@Argument
-		private List<String> arguments = new ArrayList<String>();
+		private List<String> tests = new ArrayList<String>();
 	}
 
 	private final boolean exitOnBug;
@@ -56,7 +60,7 @@ public class Replay extends TestReader {
 		RunnerPool.getRunnerPool().startLocalWorkers();
 
 		Replay replay = new Replay(config, config.exitOnBug);
-		replay.read(config.arguments);
+		replay.read(config.tests);
 
 
 		System.exit(0);
@@ -84,7 +88,7 @@ public class Replay extends TestReader {
 			Operation[] operations = future.get();
 
 			for(Operation op : operations) {
-				OperationStatus info = (OperationStatus) op.getInfo(OperationStatus.KEY);
+				OperationResult info = (OperationResult) op.getInfo(OperationResult.KEY);
 
 				if(info != null && info.getStatus() == Status.POSTCONDITION_ERROR) {
 					dump(operations);
@@ -103,7 +107,7 @@ public class Replay extends TestReader {
 
 		for(Operation op : operations) {
 			sb.append(op).append("\n");
-			OperationStatus info = (OperationStatus) op.getInfo(OperationStatus.KEY);
+			OperationResult info = (OperationResult) op.getInfo(OperationResult.KEY);
 			if(info != null) sb.append("  ").append(info);
 		}
 

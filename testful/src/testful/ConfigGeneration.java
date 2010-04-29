@@ -31,7 +31,7 @@ implements IConfigProject.Args4j, IConfigCut.Args4j, IConfigGeneration.Args4j {
 		dirGeneratedTests = new File("genTests");
 		reload = false;
 
-		time=600;
+		time=60;
 		cache=false;
 		numVar=4;
 		numVarCut=4;

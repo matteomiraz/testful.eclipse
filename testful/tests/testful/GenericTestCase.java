@@ -3,6 +3,7 @@ package testful;
 import java.io.File;
 import java.rmi.RemoteException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -66,7 +67,7 @@ public abstract class GenericTestCase  extends TestCase {
 		}
 	}
 
-	protected void checkTestFailed(Test orig, ElementManager<String, CoverageInformation> origCov, List<Test> parts, List<ElementManager<String, CoverageInformation>> partsCov, ElementManager<String,CoverageInformation> combinedCov) throws TestFailedException {
+	protected void checkTestFailed(Test orig, ElementManager<String, CoverageInformation> origCov, Collection<? extends Test> parts, List<ElementManager<String, CoverageInformation>> partsCov, ElementManager<String,CoverageInformation> combinedCov) throws TestFailedException {
 		StringBuilder msg = new StringBuilder();
 
 		boolean err = false;
@@ -108,7 +109,7 @@ public abstract class GenericTestCase  extends TestCase {
 		printTest(msg, "Modified Test", null, combinedCov);
 
 		int i = 0;
-		Iterator<Test> testIt = parts.iterator();
+		Iterator<? extends Test> testIt = parts.iterator();
 		Iterator<ElementManager<String, CoverageInformation>> covIt = partsCov.iterator();
 		while(testIt.hasNext())
 			printTest(msg, "Part " + ++i, testIt.next(), covIt.next());

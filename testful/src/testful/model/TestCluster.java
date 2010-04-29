@@ -131,12 +131,16 @@ public class TestCluster implements Serializable {
 			Clazz clazz = toDo.iterator().next();
 			toDo.remove(clazz);
 
+			if(clazz instanceof PrimitiveClazz || clazz.getClassName().equals("java.lang.String")) {
+				clusterBuilder.add(clazz);
+				continue;
+			}
+
 			if(!clusterBuilder.contains(clazz)) {
 				clusterBuilder.add(clazz);
 				addClazz(toDo, clazz, config);
 			}
 
-			if(clazz instanceof PrimitiveClazz) continue;
 
 			XmlClass xmlClass = xml.get(clazz.getClassName());
 			if(xmlClass != null && xmlClass.getAux() != null) {
@@ -144,7 +148,6 @@ public class TestCluster implements Serializable {
 					if(aux.getName() != null)
 						toDo.add(getRegistry().getClazz(this.classLoader.loadClass(aux.getName())));
 			}
-
 		}
 
 		PrimitiveClazz.refine(clusterBuilder);
@@ -185,17 +188,29 @@ public class TestCluster implements Serializable {
 			}
 		}
 
-		// Inserting in the test cluster all input parameters of constructors of CUT
+		// Consider public fields
+		for(Field f : javaClass.getFields())
+			if(Modifier.isPublic(f.getModifiers()))
+				todo.add(getRegistry().getClazz(f.getType()));
+
+		// Consider constructors
 		for(Constructor<?> cns : javaClass.getConstructors())
 			if(Modifier.isPublic(cns.getModifiers()))
 				for(Class<?> param : cns.getParameterTypes())
 					todo.add(getRegistry().getClazz(param));
 
-		// Inserting in the test cluster all input parameters of methods of CUT
+		// Consider methods
 		for(Method meth : javaClass.getMethods())
-			if(!Methodz.toSkip(meth))
+			if(!Methodz.toSkip(meth)) {
+
+				// add the return type to the test cluster
+				if(meth.getReturnType() != Void.TYPE)
+					todo.add(getRegistry().getClazz(meth.getReturnType()));
+
+				// add input parameters to the test cluster
 				for(Class<?> param : meth.getParameterTypes())
 					todo.add(getRegistry().getClazz(param));
+			}
 	}
 
 	/**
@@ -213,7 +228,7 @@ public class TestCluster implements Serializable {
 			missing.add(c);
 
 		for (Clazz c : cluster) {
-			if(c.getConstructors().length > 0)
+			if(!c.isAbstract())
 				for (Clazz assignable : c.getAssignableTo())
 					missing.remove(assignable);
 
@@ -233,14 +248,12 @@ public class TestCluster implements Serializable {
 					missing.remove(assignable);
 
 			if(missing.isEmpty()) return;
-
 		}
 
 		// just in case...
 		if(missing.isEmpty()) return;
 
 		throw new MissingClassException(missing, cut);
-
 	}
 
 	public static class MissingClassException extends TestfulException {
@@ -252,7 +265,7 @@ public class TestCluster implements Serializable {
 		public final boolean fatal;
 
 		public MissingClassException(Set<Clazz> missing, Clazz cut) {
-			super("Some classes are missing");
+			super("Some classes are missing:" + missing);
 
 			Set<String> tmp = new HashSet<String>();
 			for (Clazz c : missing) tmp.add(c.getClassName());
@@ -319,6 +332,18 @@ public class TestCluster implements Serializable {
 		return ret;
 	}
 
+	public Clazz getClass(Class<?> clazz) {
+		for (Clazz c : cluster) {
+			try {
+				if(c.toJavaClass() == clazz)
+					return c;
+			} catch (ClassNotFoundException e) {
+			}
+		}
+
+		return null;
+	}
+
 	public ClassRegistry getRegistry() {
 		if(registry == null) // if loaded from a serialized version, fill the registry!
 			try {
@@ -349,11 +374,18 @@ public class TestCluster implements Serializable {
 		StringBuilder ret = new StringBuilder();
 
 		ret.append("CUT: ").append(cut.getClassName()).append("\n");
+
 		ret.append("Test Cluster: ");
 		for(Clazz c : cluster)
 			ret.append("\n  ").append(c.getClassName());
+		ret.append("\n");
 
-		ret.append("\nregistry:\n");
+		ret.append("ALL:");
+		for(Clazz c : all)
+			ret.append("\n  ").append(c.getClassName());
+		ret.append("\n");
+
+		ret.append("registry:\n");
 		for(Clazz c : registry.registry.values()) {
 			ret.append(c.getClassName()).append(" -> ");
 			for(Clazz to : c.getAssignableTo())
@@ -370,7 +402,8 @@ public class TestCluster implements Serializable {
 	}
 
 	Class<?> loadClass(String name) throws ClassNotFoundException {
-		if(classLoader == null) throw new ClassNotFoundException("The classloader is not set");
+		if(classLoader == null)
+			throw new ClassNotFoundException("The classloader is not set");
 
 		return classLoader.loadClass(name);
 	}

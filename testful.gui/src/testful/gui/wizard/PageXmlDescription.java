@@ -44,14 +44,17 @@ import testful.model.xml.XmlAux;
 import testful.model.xml.XmlClass;
 import testful.model.xml.XmlConstructor;
 import testful.model.xml.XmlMethod;
-import testful.model.xml.XmlParameter;
 import testful.model.xml.XmlMethod.Kind;
+import testful.model.xml.XmlParameter;
 
 public class PageXmlDescription extends WizardPage {
 
-	private static final String[] KIND = { Kind.MUTATOR.toString(),
-		Kind.WORKER.toString(), Kind.OBSERVER.toString(),
-		Kind.STATIC.toString() };
+	private static final String[] KIND = {
+		Kind.MUTATOR.toString(),
+		Kind.PURE.toString(),
+		Kind.OBSERVER.toString(),
+		Kind.STATIC.toString()
+	};
 
 	private Shell shell;
 

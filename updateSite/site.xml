@@ -6,7 +6,7 @@
    <feature url="features/testful_1.0.0.jar" id="testful" version="1.0.0">
       <category name="testful"/>
    </feature>
-   <feature url="features/testful_1.0.4.jar" id="testful" version="1.0.4">
+   <feature url="features/testful_1.0.5.jar" id="testful" version="1.0.5">
       <category name="testful"/>
    </feature>
    <category-def name="testful" label="TestFul">

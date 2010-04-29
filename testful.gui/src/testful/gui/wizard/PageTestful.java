@@ -96,12 +96,12 @@ public class PageTestful extends WizardPage {
 
 		{
 			new ControlLabel(cmpGrid, "Use smart ancestors:", "Starts the evolution from a better population.");
-			ControlCombo.getBooleanCombo(cmpGrid, true, new ITestfulControl<Boolean>() {
+			new ControlInteger(cmpGrid, config.getSmartInitialPopulation(), ControlInteger.getNotNegative(new ITestfulControl<Integer>() {
 				@Override
-				public void update(Boolean newValue) throws Exception {
+				public void update(Integer newValue) throws Exception {
 					config.setSmartInitialPopulation(newValue);
 				}
-			});
+			}));
 		}
 
 		{
