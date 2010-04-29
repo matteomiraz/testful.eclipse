@@ -65,12 +65,17 @@ public class Parser {
 		return (XmlClass) unmarshaller.unmarshal(file);
 	}
 
-	public void encode(XmlClass xml, IConfigProject config) throws JAXBException {
+	public boolean encode(XmlClass xml, IConfigProject config) throws JAXBException {
 		FileOutputStream out = null;
 
 		try {
-			out = new FileOutputStream(new File(config.getDirSource(), xml.getName().replace('.', File.separatorChar) + ".xml"));
+			final File outFile = new File(config.getDirSource(), xml.getName().replace('.', File.separatorChar) + ".xml");
+			if(!outFile.getParentFile().exists())
+				outFile.getParentFile().mkdirs();
+
+			out = new FileOutputStream(outFile);
 			marshaller.marshal(xml, out);
+			return true;
 		} catch(IOException e) {
 			logger.log(Level.WARNING, "Cannot write to file: " + e.getMessage(), e);
 		} finally {
@@ -82,7 +87,7 @@ public class Parser {
 				}
 			}
 		}
-
+		return false;
 	}
 
 	public XmlClass createClassModel(Class<?> c) {
@@ -138,20 +143,34 @@ public class Parser {
 
 	public static void main(String[] args) throws JAXBException, IOException {
 		IConfigCut config = new ConfigCut();
-
 		TestFul.parseCommandLine(config, args, Parser.class, "XML Creator");
 
 		testful.TestFul.setupLogging(config);
+
+		if(!config.isQuiet())
+			TestFul.printHeader("XML Creator");
+
+		run(config);
+	}
+
+	/**
+	 * @param	baseDir			the eclipse workspace directory.
+	 * @param	projectFolders	an array contains project folders, one for each class.
+	 * @param	classes			an array contains classes
+	 */
+	public static void run(IConfigCut config) throws JAXBException, IOException {
 
 		final URLClassLoader loader = new URLClassLoader(new URL[] { config.getDirCompiled().toURI().toURL() });
 
 		try {
 			Class<?> clazz = loader.loadClass(config.getCut());
 			XmlClass xmlClass = singleton.createClassModel(clazz);
+			xmlClass.setInstrument(true);
 			singleton.encode(xmlClass, config);
 		} catch(ClassNotFoundException e) {
 			logger.log(Level.SEVERE, "Class not found: " + e.getMessage(), e);
 		}
+
 	}
 
 	private static class TestfulValidationEventHandler implements ValidationEventHandler {

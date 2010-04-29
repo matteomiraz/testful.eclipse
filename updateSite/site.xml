@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<site>
+   <description name="TestFul" url="http://code.google.com/p/testful/">
+      TestFul is a test-case generator for Java classes.
+   </description>
+   <feature url="features/testful_1.0.0.jar" id="testful" version="1.0.0">
+      <category name="testful"/>
+   </feature>
+   <feature url="features/testful_1.0.5.jar" id="testful" version="1.0.5">
+      <category name="testful"/>
+   </feature>
+   <category-def name="testful" label="TestFul">
+      <description>
+         Test Generation Framework
+      </description>
+   </category-def>
+</site>

@@ -11,14 +11,14 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(namespace = "http://home.dei.polimi.it/miraz/testful", name = "parameter")
-public class XmlParameter {
+public class XmlParameter implements Cloneable {
 
 	@XmlAttribute(required = true)
 	protected String type;
 
 	@XmlAttribute()
 	protected boolean array;
-	
+
 	@XmlAttribute
 	protected Boolean mutated;
 
@@ -63,11 +63,11 @@ public class XmlParameter {
 	public void setExposedByReturn(Boolean value) {
 		exposedByReturn = value;
 	}
-	
+
 	public boolean isArray() {
 		return array;
 	}
-	
+
 	public void setArray(boolean array) {
 		this.array = array;
 	}
@@ -99,5 +99,17 @@ public class XmlParameter {
 	public List<Extra> getExtra() {
 		if(extra == null) extra = new ArrayList<Extra>();
 		return extra;
+	}
+
+	@Override
+	public XmlParameter clone() {
+		XmlParameter clone = new XmlParameter();
+		clone.setArray(array);
+		clone.setCaptured(captured);
+		clone.setExchangeStateWith(exchangeStateWith);
+		clone.setExposedByReturn(exposedByReturn);
+		clone.setMutated(mutated);
+		clone.setType(type);
+		return clone;
 	}
 }
