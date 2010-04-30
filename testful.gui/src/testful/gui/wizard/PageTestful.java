@@ -55,6 +55,17 @@ public class PageTestful extends WizardPage {
 		}
 
 		{
+			new ControlLabel(cmpGrid, "Preparation Time:", "Use Random Testing to start the evolution from a better population.");
+			new ControlInteger(cmpGrid, config.getSmartInitialPopulation(), ControlInteger.getNotNegative(new ITestfulControl<Integer>() {
+				@Override
+				public void update(Integer newValue) throws Exception {
+					config.setSmartInitialPopulation(newValue);
+				}
+			}));
+		}
+
+
+		{
 			new ControlLabel(cmpGrid, "Test Directory:", "The directory in which generated tests will be put");
 			new ControlText(cmpGrid, "genTests", ControlText.getRequired(new ITestfulControl<String>() {
 				@Override
@@ -62,6 +73,16 @@ public class PageTestful extends WizardPage {
 					config.setDirGeneratedTests(new File(newValue));
 				}
 			}));
+		}
+
+		{
+			new ControlLabel(cmpGrid, "Simplify:", "Simplify tests to improve effectiveness and readability");
+			ControlCombo.getBooleanCombo(cmpGrid, config.isSimplify(), new ITestfulControl<Boolean>() {
+				@Override
+				public void update(Boolean newValue) {
+					config.setSimplify(newValue);
+				}
+			});
 		}
 
 		{
@@ -90,16 +111,6 @@ public class PageTestful extends WizardPage {
 				@Override
 				public void update(Integer newValue) {
 					config.setNumVar(newValue);
-				}
-			}));
-		}
-
-		{
-			new ControlLabel(cmpGrid, "Use smart ancestors:", "Starts the evolution from a better population.");
-			new ControlInteger(cmpGrid, config.getSmartInitialPopulation(), ControlInteger.getNotNegative(new ITestfulControl<Integer>() {
-				@Override
-				public void update(Integer newValue) throws Exception {
-					config.setSmartInitialPopulation(newValue);
 				}
 			}));
 		}
