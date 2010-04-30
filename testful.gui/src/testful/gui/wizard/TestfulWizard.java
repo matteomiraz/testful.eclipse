@@ -5,8 +5,8 @@ import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.wizard.Wizard;
 
 import testful.IConfigCut;
-import testful.TestfulException;
 import testful.IConfigProject.LogLevel;
+import testful.TestfulException;
 import testful.evolutionary.ConfigEvolutionary;
 import testful.gui.Activator;
 import testful.gui.GenerationJob;
@@ -31,7 +31,9 @@ public class TestfulWizard extends Wizard {
 		config.setLog(null);
 		config.setLogLevel(LogLevel.WARNING);
 
-		setDefaultPageImageDescriptor(Activator.getImageDescriptor("testful_wizard_big.gif"));
+		config.setSimplify(false);
+
+		setDefaultPageImageDescriptor(Activator.getImageDescriptor("testful_wizard_big.png"));
 	}
 
 	@Override
