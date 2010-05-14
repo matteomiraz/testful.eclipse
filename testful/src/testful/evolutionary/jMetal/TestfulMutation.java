@@ -25,7 +25,7 @@ public class TestfulMutation extends Mutation<Operation> {
 		this.probRemove = probRemove;
 	}
 
-	private float probSimplify = 0.05f;
+	private float probSimplify = 0f;
 	public void setProbSimplify(float probSimplify) {
 		this.probSimplify = probSimplify;
 	}

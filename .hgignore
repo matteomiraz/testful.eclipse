@@ -5,3 +5,8 @@ syntax: glob
 */bin/
 */build/
 */run/
+updateSite/*.jar
+updateSite/logs.zip
+updateSite/features/*.jar
+updateSite/plugins/*.jar
+

@@ -11,7 +11,7 @@ import javax.xml.bind.annotation.XmlType;
 
 @XmlAccessorType(XmlAccessType.FIELD)
 @XmlType(namespace = "http://testful.sourceforge.net/schema/1.1/testful.xsd", name = "parameter")
-public class XmlParameter {
+public class XmlParameter implements Cloneable {
 
 	@XmlAttribute(required = true)
 	protected String type;
@@ -88,5 +88,16 @@ public class XmlParameter {
 	public List<Extra> getExtra() {
 		if(extra == null) extra = new ArrayList<Extra>();
 		return extra;
+	}
+
+	@Override
+	public XmlParameter clone() {
+		XmlParameter clone = new XmlParameter();
+		clone.setCaptured(captured);
+		clone.setExchangeStateWith(exchangeStateWith);
+		clone.setExposedByReturn(exposedByReturn);
+		clone.setMutated(mutated);
+		clone.setType(type);
+		return clone;
 	}
 }

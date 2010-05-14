@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="testful"
+      label="TestFul"
+      version="1.1.2"
+      provider-name="TestFul Team">
+
+   <description url="http://code.google.com/p/testful/">
+      TestFul is a test-case generator for Java classes.
+   </description>
+
+   <copyright>
+      copyright 2009 - Matteo Miraz
+   </copyright>
+
+   <license url="http://www.gnu.org/licenses/gpl-3.0-standalone.html">
+      This project is licensed under the GPLv3
+
+Go to http://code.google.com/p/testful/ 
+to get the code and start contributing!
+   </license>
+
+   <url>
+      <update label="TestFul" url="http://testful.sourceforge.net/updateSite/"/>
+      <discovery label="TestFul&apos;s homepage" url="http://code.google.com/p/testful/"/>
+   </url>
+
+   <requires>
+      <import plugin="org.eclipse.core.runtime"/>
+      <import plugin="org.eclipse.ui"/>
+      <import plugin="org.eclipse.core.resources"/>
+      <import plugin="org.eclipse.jdt" version="3.0.0" match="greaterOrEqual"/>
+      <import plugin="org.eclipse.jdt.core" version="3.0.0" match="greaterOrEqual"/>
+   </requires>
+
+   <plugin
+         id="testful.core"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="testful.gui"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+</feature>
