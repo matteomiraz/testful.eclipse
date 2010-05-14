@@ -82,7 +82,7 @@ public class Instrument {
 				BufferedReader br = new BufferedReader(new InputStreamReader(is));
 				String line=null;
 				while ((line = br.readLine()) != null)
-					out.append(line);
+					out.append(line).append("\n");
 
 			} catch (IOException ioe) {
 				ioe.printStackTrace();

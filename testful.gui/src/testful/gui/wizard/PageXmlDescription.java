@@ -577,7 +577,7 @@ public class PageXmlDescription extends WizardPage {
 			Text t = new Text(properties, SWT.BORDER);
 			t.setLayoutData(new GridData(GridData.FILL_HORIZONTAL));
 			t.setEditable(false);
-			t.setText(par.getType() + (par.isArray() ? " (array)" : ""));
+			t.setText(par.getType());
 		}
 
 		{

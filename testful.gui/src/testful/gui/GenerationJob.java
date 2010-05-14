@@ -118,6 +118,8 @@ public class GenerationJob extends Job {
 					config.getDirContracts().getAbsolutePath(),
 					config.getDirInstrumented().getAbsolutePath(), msg);
 
+			System.out.println("Instrumentation " + (ok?"ok":"ERROR") + " :\n" + msg.toString() + "\n----\n");
+
 			if(!ok) throw new Exception(msg.toString());
 
 		} finally {

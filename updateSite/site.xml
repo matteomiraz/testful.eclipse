@@ -3,7 +3,7 @@
    <description name="TestFul" url="http://code.google.com/p/testful/">
       TestFul is a test-case generator for Java classes.
    </description>
-   <feature url="features/testful_1.1.0.jar" id="testful" version="1.1.0">
+   <feature url="features/testful_1.1.2.jar" id="testful" version="1.1.2">
       <category name="testful"/>
    </feature>
    <category-def name="testful" label="TestFul">

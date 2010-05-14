@@ -31,8 +31,6 @@ public class TestfulWizard extends Wizard {
 		config.setLog(null);
 		config.setLogLevel(LogLevel.WARNING);
 
-		config.setSimplify(false);
-
 		setDefaultPageImageDescriptor(Activator.getImageDescriptor("testful_wizard_big.png"));
 	}
 
