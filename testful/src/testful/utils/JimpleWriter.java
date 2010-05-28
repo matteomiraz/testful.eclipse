@@ -1,3 +1,22 @@
+/*
+ * TestFul - http://code.google.com/p/testful/
+ * Copyright (C) 2010  Matteo Miraz
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 package testful.utils;
 
 import java.util.Map;
@@ -72,7 +91,7 @@ public class JimpleWriter extends BodyTransformer {
 				for(int v = 0; v < sw.getTargetCount(); v++)
 					System.out.println("      case " + sw.getLookupValue(v) + ": goto " + findIndex(units, sw.getTarget(v)));
 				System.out.println("      default: goto " + findIndex(units, sw.getDefaultTarget()));
-			} else System.out.println(units[i].toString() + " " + units[i].getClass().getCanonicalName());
+			} else System.out.println(units[i].toString()); // + " " + units[i].getClass().getCanonicalName());
 
 			if(units[i].hasTag("StringTag")) {
 				String info = ((StringTag) units[i].getTag("StringTag")).getInfo();

@@ -1,3 +1,22 @@
+/*
+ * TestFul - http://code.google.com/p/testful/
+ * Copyright (C) 2010  Matteo Miraz
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
 package testful.evolutionary.jMetal;
 
 import java.io.Serializable;
@@ -262,55 +281,59 @@ public class LocalSearchBranch extends LocalSearchPopulation<Operation> {
 
 				Serializable value = ap.getValue();
 
-				switch(((PrimitiveClazz) ap.getTarget().getClazz()).getType()) {
-				case BooleanClass:
-				case BooleanType:
-					value = !((Boolean)value);
-					break;
+				if(ap.getTarget().getClazz() instanceof PrimitiveClazz) {
+					switch(((PrimitiveClazz) ap.getTarget().getClazz()).getType()) {
+					case BooleanClass:
+					case BooleanType:
+						value = !((Boolean)value);
+						break;
 
-				case ByteClass:
-				case ByteType:
-					value = (byte) (((Byte)value) + rand(random));
-					break;
+					case ByteClass:
+					case ByteType:
+						value = (byte) (((Byte)value) + rand(random));
+						break;
 
-				case CharacterClass:
-				case CharacterType:
-					value = (char) (((Character)value) + rand(random));
-					break;
+					case CharacterClass:
+					case CharacterType:
+						value = (char) (((Character)value) + rand(random));
+						break;
 
-				case DoubleClass:
-				case DoubleType:
+					case DoubleClass:
+					case DoubleType:
 
-					if(random.nextBoolean(.75)) {
-						value = ((Double)value) + random.nextGaussian();
-					} else {
-						value = random.nextDouble();
+						if(random.nextBoolean(.75)) {
+							value = ((Double)value) + random.nextGaussian();
+						} else {
+							value = random.nextDouble();
+						}
+						break;
+
+					case FloatClass:
+					case FloatType:
+						if(random.nextBoolean(.75)) {
+							value = (float) (((Float)value) + random.nextGaussian());
+						} else {
+							value = random.nextFloat();
+						}
+						break;
+
+					case IntegerClass:
+					case IntegerType:
+						value = (int) (((Integer)value) + rand(random) * (random.nextBoolean(.75) ? 1 : 1000));
+						break;
+
+					case LongClass:
+					case LongType:
+						value = (long) (((Long)value) + rand(random) * (random.nextBoolean(.75) ? 1 : 1000));
+						break;
+
+					case ShortClass:
+					case ShortType:
+						value = (short) (((Integer)value) + rand(random));
+						break;
 					}
-					break;
-
-				case FloatClass:
-				case FloatType:
-					if(random.nextBoolean(.75)) {
-						value = (float) (((Float)value) + random.nextGaussian());
-					} else {
-						value = random.nextFloat();
-					}
-					break;
-
-				case IntegerClass:
-				case IntegerType:
-					value = (int) (((Integer)value) + rand(random) * (random.nextBoolean(.75) ? 1 : 1000));
-					break;
-
-				case LongClass:
-				case LongType:
-					value = (long) (((Long)value) + rand(random) * (random.nextBoolean(.75) ? 1 : 1000));
-					break;
-
-				case ShortClass:
-				case ShortType:
-					value = (short) (((Integer)value) + rand(random));
-					break;
+				} else {
+					// TODO: do something for the string
 				}
 
 
