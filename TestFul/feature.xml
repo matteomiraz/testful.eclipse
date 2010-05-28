@@ -2,7 +2,7 @@
 <feature
       id="testful"
       label="TestFul"
-      version="1.1.2"
+      version="1.1.3"
       provider-name="TestFul Team">
 
    <description url="http://code.google.com/p/testful/">
@@ -10,7 +10,7 @@
    </description>
 
    <copyright>
-      copyright 2009 - Matteo Miraz
+      copyright 2010 - Matteo Miraz
    </copyright>
 
    <license url="http://www.gnu.org/licenses/gpl-3.0-standalone.html">
@@ -23,6 +23,7 @@ to get the code and start contributing!
    <url>
       <update label="TestFul" url="http://testful.sourceforge.net/updateSite/"/>
       <discovery label="TestFul&apos;s homepage" url="http://code.google.com/p/testful/"/>
+      <discovery label="Eclipse Marketplace" url="http://marketplace.eclipse.org/content/testful"/>
    </url>
 
    <requires>

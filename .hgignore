@@ -10,3 +10,6 @@ updateSite/logs.zip
 updateSite/features/*.jar
 updateSite/plugins/*.jar
 
+
+syntax: regexp
+^testful/testCut/instrumented/attributes$
